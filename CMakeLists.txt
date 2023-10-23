@@ -11,6 +11,7 @@ set(SOURCES
   src/main.c
   src/file.c
   src/number.c
+  src/stack.c
 )
 
 # Add an executable with the above sources
