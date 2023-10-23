@@ -27,4 +27,10 @@ void number_print(number_t* number);
  */
 void delete_number(number_t* number);
 
+/************** LSHIFT ***********************/
+number_t* lshift (number_t* number, int positions);
+
+/************** RSHIFT ***********************/
+number_t* rshift (number_t* number, int positions);
+
 #endif // NUMBER_H

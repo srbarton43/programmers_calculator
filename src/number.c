@@ -17,6 +17,7 @@ static unsigned long binary2dec(char* binary);
 static void binary2hex(char* hex, char* binary);
 static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
+static void refresh_number (number_t* number);
 
 number_t* new_number(int type, char* number) {
   if (number == NULL) {
@@ -216,6 +217,12 @@ static void hex2binary(char* binary, char* hex) {
   strcpy(binary, bitstring);
 }
 
+static void refresh_number (number_t* number) {
+  dec2binary(number->decimal_unsigned, number->binary);
+  binary2hex(number->hex, number->binary);
+  number->decimal_signed = (long) number->decimal_unsigned;
+}
+
 void delete_number (number_t* number) {
   free(number);
 }
@@ -226,4 +233,29 @@ void number_print(number_t* number) {
   printf("UNSIGNED DECIMAL: %lu\n", number->decimal_unsigned);
   printf("SIGNED DECIMAL: %ld\n", number->decimal_signed);
   printf("HEX: 0x%s\n", number->hex);
+}
+
+static number_t* copy_number(number_t* number) {
+  number_t* new_num = malloc(sizeof(number_t));
+  new_num->decimal_unsigned = number->decimal_unsigned;
+  new_num->decimal_signed = number->decimal_signed;
+  strcpy(new_num->binary, number->binary);
+  strcpy(new_num->hex, number->hex);
+  return new_num;
+}
+
+/*********************************************/
+/*********** OPERATIONS **********************/
+/*********************************************/
+number_t* lshift(number_t* number, int positions) {
+  number_t* new_num = copy_number(number);
+  new_num->decimal_unsigned = number->decimal_unsigned << positions;
+  refresh_number(new_num);
+  return new_num;
+}
+number_t* rshift(number_t* number, int positions) {
+  number_t* new_num = copy_number(number);
+  new_num->decimal_unsigned = number->decimal_unsigned >> positions;
+  refresh_number(new_num);
+  return new_num;
 }
