@@ -5,6 +5,7 @@
 #include "../include/file.h"
 #include "../include/number.h"
 #include "../include/stack.h"
+#include "../include/parser.h"
 
 int main(int argc, char *argv[]) {
   printf("Hello World\n");
@@ -41,15 +42,20 @@ int main(int argc, char *argv[]) {
 //   delete_number(rshifted);
 //   // delete_number(n4);
 //   // delete_number(n5);
-  stack* stk = new_stack();
-  char* s1 = "abc";
-  char* s2 = "def";
-  char buf[32];
-  push(stk, s1);
-  push(stk, s2);
-  strcpy(buf, (char*)pop(stk));
-  printf("%s\n", buf);
-  strcpy(buf, (char*)pop(stk));
-  printf("%s\n", buf);
-  return 0;
+//   stack* stk = new_stack();
+//   char* s1 = "abc";
+//   char* s2 = "def";
+//   char buf[32];
+//   push(stk, s1);
+//   push(stk, s2);
+//   strcpy(buf, (char*)pop(stk));
+//   printf("%s\n", buf);
+//   strcpy(buf, (char*)pop(stk));
+//   printf("%s\n", buf);
+    char* line = malloc(100*sizeof(char));
+    strcpy(line, "abc + xyz >>abc>> 3 a-b");
+    parse_line(line);
+    printf("foo\n");
+    return 0;
+    
 }

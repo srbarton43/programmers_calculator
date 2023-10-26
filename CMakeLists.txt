@@ -12,6 +12,7 @@ set(SOURCES
   src/file.c
   src/number.c
   src/stack.c
+  src/parser.c
 )
 
 # Add an executable with the above sources
@@ -22,4 +23,14 @@ add_executable(programmers_calculator ${SOURCES})
 target_include_directories(programmers_calculator
   PRIVATE 
     ${PROJECT_SOURCE_DIR}/include
+)
+
+target_link_libraries(programmers_calculator
+  pcre2-8
+)
+
+set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+
+target_compile_options(programmers_calculator INTERFACE
+  "<${gcc_like_cxx}:-Wall;-pedantic>"
 )
