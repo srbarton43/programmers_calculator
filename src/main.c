@@ -53,9 +53,8 @@ int main(int argc, char *argv[]) {
 //   strcpy(buf, (char*)pop(stk));
 //   printf("%s\n", buf);
     char* line = malloc(100*sizeof(char));
-    strcpy(line, "abc + xyz >>abc>> 3 a-b");
+    strcpy(line, "abc + 0xab12 >>abc>> 3 a-b >>");
     parse_line(line);
-    printf("foo\n");
     return 0;
     
 }
