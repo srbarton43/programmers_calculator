@@ -28,10 +28,18 @@ typedef struct o_token {
 } token_t;
 
 static void token_print (token_t* token) {
+  if (token == NULL) {
+    printf("token is null");
+    return;
+  }
   printf("token id: %d\n", token->id);
   printf("isValid: %d\n", token->isValid);
-  printf("raw token: %s\n", token->raw_token);
-  printf("cleaned token: %s\n", token->cleaned_token);
+  if (token->raw_token != NULL) {
+    printf("raw token: %s\n", token->raw_token);
+  }
+  if (token->cleaned_token != NULL) {
+    printf("cleaned token: %s\n", token->cleaned_token);
+  }
   printf("type: %d\n", token->type_e);
   printf("foo\n");
 }
@@ -39,7 +47,7 @@ static void token_print (token_t* token) {
 static char* isMatch (char* raw_token, char* regex) {
   int value;
 
-  pcre2_code *re;
+  pcre2_code *re = NULL;
   PCRE2_SPTR pattern = (PCRE2_SPTR) regex;     /* PCRE2_SPTR is a pointer to unsigned code units of */
   PCRE2_SPTR subject= (PCRE2_SPTR) raw_token;     /* the appropriate width (8, 16, or 32 bits). */
   int errornumber;
@@ -110,8 +118,11 @@ the number of capturing parentheses in the pattern. */
   // buffer for the cleaned token ... must be freed by caller
   char* buffer = malloc((MAX_TOK_SIZE+1)*sizeof(char)); 
   sprintf(buffer, "%.*s", (int)substring_length, (char *)substring_start);
+  pcre2_match_data_free(match_data);  /* Release the memory that was used */
+  pcre2_code_free(re);                /* for the match data and the pattern. */
   if (strlen(buffer) != strlen(raw_token)) { // we chopped characters off of raw
     // printf("not all of token matched\n");
+    free(buffer);
     return NULL;
   }
 
@@ -144,9 +155,17 @@ static void token_classify(token_t* token) {
 }
 
 token_t** tokenize (char* line) {
+  if (line == NULL) {
+    return NULL;
+  }
   char* slow = line;                                        // slow pointer
-  char* fast;                                               // fast pointer
-  token_t** tokens = malloc(strlen(line)*sizeof(token_t));  // token array
+  char* fast = line+1;                                      // fast pointer
+  token_t** tokens = NULL;
+  tokens = malloc(strlen(line)*sizeof(token_t));  // token array
+  if (tokens == NULL) {
+    fprintf(stderr, "error allocating tokens\n");
+    return NULL;
+  }
   int token_p = 0;                                          // token pointer
   // simple tokenize on blankspace
   while (*slow != '\0') {
@@ -158,12 +177,19 @@ token_t** tokenize (char* line) {
         fast++;
       }
       if (isspace(*fast)) *fast = '\0'; // if fast pointer is not at end, null-terminate the string
-      tokens[token_p] = malloc(sizeof(token_t));
-      tokens[token_p]->id = token_number;
-      tokens[token_p]->raw_token = slow;
-      tokens[token_p]->isValid = 0;
-      token_classify(tokens[token_p]);
-      token_number++;
+      token_t* token = NULL;
+      token = malloc(sizeof(token_t));
+      if (token != NULL) {
+        token->id = token_number;
+        token->raw_token = slow;
+        token->isValid = 0;
+        token_classify(token);
+        token_number++;
+        tokens[token_p] = token;
+      } else {
+        fprintf(stderr, "tokenize: malloc error when allocating token\n");
+        exit(1);
+      }
       token_p++;
       slow = fast+1;
     } 
@@ -171,15 +197,24 @@ token_t** tokenize (char* line) {
   return tokens;
 }
 void parse_line(char* line) {
+
   if (line == NULL) {
     fprintf(stderr, "parse_line: line is null");
     return;
   }
 
   token_t** tokens = tokenize(line);
-  for (int i = 0; tokens[i] != NULL; i++) {
-    token_print(tokens[i]);
+  if (tokens == NULL) {
+    free(line);
+    return;
   }
+  for (int i = 0; tokens[i] != NULL; i++) {
+    if (tokens[i] != NULL) {
+      token_print(tokens[i]);
+      free(tokens[i]);
+    }
+  }
+  free(tokens);
   free(line);
   
 }
