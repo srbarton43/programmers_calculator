@@ -218,3 +218,13 @@ void parse_line(char* line) {
   free(line);
   
 }
+
+
+#ifdef UNIT_TEST
+
+int main(int argc, char* argv[]) {
+  printf("Parser Unit Test!!!\n");
+  return 0;
+}
+
+#endif
