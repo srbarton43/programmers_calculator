@@ -11,3 +11,8 @@ The biggest feature which I want to add which I have not found in other programm
 
 - Have a struct to represent numbers but don't love it
 - Building the tokenizer and the parser (will use Shunting Yard Algorithm most likely).
+
+## TODO
+
+- Incorporate flex lexer and bison parser for the CLI parsing
+- figure out how to do testing inside of CMAKE instead of using other Makefiles
