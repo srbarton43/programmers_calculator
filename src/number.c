@@ -4,46 +4,46 @@
 #include <string.h>
 
 #include "../include/number.h"
-
-typedef struct number {
-  char binary[65];
-  long decimal_signed;
-  unsigned long decimal_unsigned;
-  char hex[17];
-} number_t;
-
+#include "../include/utils.h"
 
 static unsigned long binary2dec(char* binary);
-static void binary2hex(char* hex, char* binary);
+static char* binary2hex(char* binary);
 static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
 static void refresh_number (number_t* number);
 
-number_t* new_number(int type, char* number) {
+number_t* new_number(type_e type, char* number, int wordsize) {
   if (number == NULL) {
-    fprintf(stderr, "new_number: null number string");
+    perror("null number string");
     return NULL;
   }
   number_t* new_num = malloc(sizeof(number_t));
-  if (type == BINARY) {
-    sprintf(new_num->binary, "%s", number);
-    new_num->decimal_unsigned = binary2dec(number);
-    new_num->decimal_signed = (long) new_num->decimal_unsigned;
-    binary2hex(new_num->hex, number);
-  } else if (type == DECIMAL) {
-    new_num->decimal_signed = atoi(number);
-    new_num->decimal_unsigned = (unsigned long) new_num->decimal_signed;
-    dec2binary(new_num->decimal_unsigned, new_num->binary);
-    binary2hex(new_num->hex, new_num->binary);
-  } else if (type == HEX) {
-    sprintf(new_num->hex, "%s", number);
-    hex2binary(new_num->binary, new_num->hex);
-    new_num->decimal_unsigned = binary2dec(new_num->binary);
-    new_num->decimal_signed = (signed long) new_num->decimal_unsigned;
-  } else {
-    fprintf(stderr, "new_number: %d is not a valid number type", type);
-    free(new_num);
-    return NULL;
+  new_num->wordsize = wordsize;
+  new_num->bits = malloc(wordsize*sizeof(char));
+  // zero bits
+  for (int i = 0; i < wordsize; i++) {
+    new_num->bits[i] = '0';
+  }
+  int slen = strlen(number);
+  switch (type) {
+    case BINARY:
+      for (int i = 1; i <= wordsize; i++) {
+        if (i <= slen)
+          new_num->bits[wordsize-i] = number[slen-i];
+        else
+          new_num->bits[wordsize-i] = '0';
+      }
+      int i = wordsize-1;
+      while (i >= 0 ) {
+        if (new_num->bits[i] == '1')
+          new_num->len = wordsize - i;
+        i--;
+      }
+      break;
+    default:
+      perror("new_number: not a valid number type");
+      free(new_num);
+      return NULL;
   }
   return new_num;
 }
@@ -83,7 +83,7 @@ static unsigned long binary2dec(char* binary) {
   return value;
 }
 
-/********* binary2dec *************/
+/********* binary2hex *************/
 /* calculates the unsigned decimal for bitstring
  *
  * parameters:
@@ -95,7 +95,7 @@ static unsigned long binary2dec(char* binary) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-static void binary2hex (char* hex, char* binary) {
+static char* binary2hex (char* binary) {
   if (binary == NULL) {
     fprintf(stderr, "binary2dec: null bitstring\n");
   }
@@ -119,7 +119,7 @@ static void binary2hex (char* hex, char* binary) {
     char bit = binary[strlen(binary)-bitPointer-1];
     if (bit != '1' && bit != '0') {
       fprintf(stderr, "binary2hex: invalid bitstring (non bit char)\n");
-      return;
+      return NULL;
     }
     if (bit == '1') {
       nibbleVal += 1 << bitValue;
@@ -132,7 +132,9 @@ static void binary2hex (char* hex, char* binary) {
   } else {
     hex_arr[hex_len - nibblePointer - 1] = nibbleVal - 10 + 'a';
   }
+  char* hex = malloc((hex_len + 1) * sizeof(char));
   strcpy(hex, hex_arr);
+  return hex;
 }
 
 /************* dec2binary **************/
@@ -217,30 +219,37 @@ static void hex2binary(char* binary, char* hex) {
   strcpy(binary, bitstring);
 }
 
-static void refresh_number (number_t* number) {
-  dec2binary(number->decimal_unsigned, number->binary);
-  binary2hex(number->hex, number->binary);
-  number->decimal_signed = (long) number->decimal_unsigned;
-}
-
 void delete_number (number_t* number) {
+  free(number->bits);
   free(number);
 }
 
 void number_print(number_t* number) {
+  printf("--------------\n");
   printf("NUMBER %p\n", number);
-  printf("BINARY: %s\n", number->binary);
-  printf("UNSIGNED DECIMAL: %lu\n", number->decimal_unsigned);
-  printf("SIGNED DECIMAL: %ld\n", number->decimal_signed);
-  printf("HEX: 0x%s\n", number->hex);
+  printf("WORDSIZE %d\n", number->wordsize);
+  printf("LENGTH %d\n", number->len);
+  char* bs = number->bits;
+  printf("BITSTRING ");
+  for (int i = number->wordsize - number->len; i < number->wordsize; i++) {
+    printf("%c", bs[i]);
+  }
+  printf("\n");
+  printf("RAW ");
+  for (int i = 0; i < number->wordsize; i++)
+    printf("%c", bs[i]);
+  printf("\n");
+  printf("--------------\n");
 }
 
 static number_t* copy_number(number_t* number) {
   number_t* new_num = malloc(sizeof(number_t));
-  new_num->decimal_unsigned = number->decimal_unsigned;
-  new_num->decimal_signed = number->decimal_signed;
-  strcpy(new_num->binary, number->binary);
-  strcpy(new_num->hex, number->hex);
+  new_num->wordsize = number->wordsize;
+  new_num->isSign = number->isSign;
+  new_num->len = number->len;
+  new_num->bits = malloc(sizeof(char)*(number->wordsize+1));
+  for (int i = 0; i < number->wordsize; i++) 
+    new_num->bits[i] = number->bits[i];
   return new_num;
 }
 
@@ -248,14 +257,92 @@ static number_t* copy_number(number_t* number) {
 /*********** OPERATIONS **********************/
 /*********************************************/
 number_t* lshift(number_t* number, int positions) {
+  if (positions < 0) {
+    printf("positions must be positive\n");
+    return NULL;
+  }
   number_t* new_num = copy_number(number);
-  new_num->decimal_unsigned = number->decimal_unsigned << positions;
-  refresh_number(new_num);
+  char* old = number->bits;
+  char* new = new_num->bits;
+  int i = 0;
+  for (; i < number->wordsize - positions; i++) {
+    new[i] = old[i+positions];
+  }
+  // zero the rest
+  for (; i < number->wordsize; i++) 
+    new[i] = '0';
+  // calculate new length
+  for (i = 1; i <= new_num->wordsize; i++) {
+    if (new[new_num->wordsize-i] == '1')
+      new_num->len = i;
+  }
   return new_num;
 }
+
 number_t* rshift(number_t* number, int positions) {
+  if (positions < 0) {
+    printf("positions must be positive\n");
+    return NULL;
+  }
   number_t* new_num = copy_number(number);
-  new_num->decimal_unsigned = number->decimal_unsigned >> positions;
-  refresh_number(new_num);
+  char* old = number->bits;
+  char* new = new_num->bits;
+  int i = 0;
+  // fill msb's with zeroes
+  for (; i < number->wordsize-number->len+positions; i++)
+    new[i] = '0';
+  // fill the shifted bits
+  for (; i < number->wordsize; i++)
+    new[i] = old[i-positions];
+  // calculate new length
+  for (i = 1; i <= new_num->wordsize; i++) {
+    if (new[new_num->wordsize-i] == '1')
+      new_num->len = i;
+  }  
   return new_num;
 }
+
+#ifdef UNIT_TEST
+
+int main(int argc, char* argv[]) {
+  printf("hello world\n");
+  number_t* num1;
+  num1 = new_number(BINARY, "1001", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "100100", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "10010011", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "111100001111", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "00001111", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "1111", 8);
+  number_print(num1);
+  delete_number(num1);
+  num1 = new_number(BINARY, "01111", 8);
+  number_print(num1);
+  printf("lshift by 2\n");
+  number_t* num2 = lshift(num1, 2);
+  number_print(num2);
+  printf("lshift last by 4\n");
+  number_t* num3 = lshift(num2, 4);
+  number_print(num3);
+  delete_number(num1);
+  delete_number(num2);
+  delete_number(num3);
+  num1 = new_number(BINARY, "11001100", 8);
+  number_print(num1);
+  printf("rshift by 2\n");
+  num2 = rshift(num1, 2);
+  number_print(num2);
+  delete_number(num1);
+  delete_number(num2);
+}
+
+#endif

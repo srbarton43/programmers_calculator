@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-enum type {BINARY, DECIMAL, HEX};
+typedef enum {BINARY, DECIMAL, HEX} type_e;
 
 typedef struct number {
-  int wordsize;
-  int len;
-  bool isSign;
-  char* bits;
-} number_t; // number struct
+  int wordsize;   // max wordsize for the bitstring
+  int len;        // actual length of bitstring
+  bool isSign;    // is it signed binary?
+  char* bits;     // non null-terminated bitstring
+} number_t;      
 
 /************** FUNCTIONS *******************/
 
@@ -20,7 +20,7 @@ typedef struct number {
 /* Create a New Number
  * 
  */
-number_t* new_number(int type, char* number);
+number_t* new_number(type_e type, char* number, int wordsize);
 
 /************** NUMBER_PRINT ****************/
 /* Prints the Number Struct
