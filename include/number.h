@@ -3,9 +3,16 @@
 #define __NUMBER_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 enum type {BINARY, DECIMAL, HEX};
-typedef struct number number_t; // number struct
+
+typedef struct number {
+  int wordsize;
+  int len;
+  bool isSign;
+  char* bits;
+} number_t; // number struct
 
 /************** FUNCTIONS *******************/
 
