@@ -1,11 +1,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
-#include "../include/file.h"
-#include "../include/number.h"
-#include "../include/stack.h"
-#include "../include/parser.h"
+#include <string.h>
+
+#include "file.h"
+#include "number.h"
+#include "stack.h"
+#include "parser.h"
 
 int main(int argc, char *argv[]) {
   printf("Hello World\n");
@@ -53,8 +54,9 @@ int main(int argc, char *argv[]) {
 //   strcpy(buf, (char*)pop(stk));
 //   printf("%s\n", buf);
     char* line = malloc(100*sizeof(char));
-    strcpy(line, "abc + 0xab12 >>abc>> 3 a-b >>");
+    strcpy(line, "- >> --- abc");
     parse_line(line);
+    printf("foo\n");
     return 0;
     
 }
