@@ -1,2 +1,2 @@
 *.o
-test_*
+unittests/test_*

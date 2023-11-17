@@ -5,25 +5,29 @@ L = ../include
 LIBS = pcre2-8
 
 CC = clang
-CFLAGS = -Wall -pedantic -I$L
+CFLAGS = -Wall -I$L
 
 EXE = test_*
 
-TESTS = test_number test_parser
+TESTS = $T/test_number $T/test_parser
+
+T = unittests
 
 all: $(TESTS)
 
-test_number: number.c utils.o
-	$(CC) $(CFLAGS) -DUNIT_TEST -I../include number.c utils.o -o $@
+$T/test_number: number.c $T/utils.o
+	$(CC) $(CFLAGS) -DUNIT_TEST -I../include number.c $T/utils.o -o $@
 
-utils.o: ../include/utils.h
+$T/utils.o: ../include/utils.h
+	$(CC) $(CFLAGS) -c utils.c -o $@
 
-test_parser: parser.c
+$T/test_parser: parser.c
 	$(CC) $(CFLAGS) -DUNIT_TEST -l$(LIBS) parser.c -o $@
 	
 test: $(TESTS)
-	./test_parser
-	./test_number
+	$T/test_parser
+	$T/test_number
 
 clean:
-	rm -f *.o $(EXE)
+	rm -f *.o
+	make -C unittests clean
