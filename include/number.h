@@ -128,8 +128,11 @@ number_t* rshift (number_t* number, number_t* positions);
 
 
 #ifdef UNIT_TEST
+
 int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
+int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
+
 #endif
 
 #endif // NUMBER_H

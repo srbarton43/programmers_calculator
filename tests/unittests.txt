@@ -60,4 +60,23 @@ pos = 1111
 expected num << pos = 0
 actual num << pos = 0
 Test Passed!
+Testing RSHIFT
+_____ RSHIFT num >> pos (8-bit Numbers) _____
+num = 110011
+pos = 1
+expected num >> pos = 11001
+actual num >> pos = 11001
+Test Passed!
+_____ RSHIFT num >> pos (8-bit Numbers) _____
+num = 110011
+pos = 10
+expected num >> pos = 1100
+actual num >> pos = 1100
+Test Passed!
+_____ RSHIFT num >> pos (8-bit Numbers) _____
+num = 110011
+pos = 11
+expected num >> pos = 110
+actual num >> pos = 110
+Test Passed!
 All Tests Passed!

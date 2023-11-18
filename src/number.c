@@ -481,6 +481,28 @@ int test_lshift (char* num, char* pos, char* expected, int wordsize, char* msg) 
   delete_number(res);
   return ret;
 }
+
+int test_rshift (char* num, char* pos, char* expected, int wordsize, char* msg) {
+  printf("_____ RSHIFT num >> pos (%d-bit Numbers) _____\n", wordsize);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* n = new_number(BINARY, num, wordsize);
+  number_t* p = new_number(BINARY, pos, wordsize);
+  printf("num = "); printBits(n); printf("\n");
+  printf("pos = "); printBits(p); printf("\n");
+  printf("expected num >> pos = %s\n", expected);
+  number_t* res = rshift(n, p);
+  printf("actual num >> pos = "); printBits(res); printf("\n");
+  int ret = isEqualToBitstring(res, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  delete_number(n);
+  delete_number(p);
+  delete_number(res);
+  return ret;
+}
 int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
   printf("_____ ADD a+b (%d-bit Numbers) _____\n", wordsize);
   if (msg != NULL) 
