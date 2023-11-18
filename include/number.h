@@ -40,4 +40,8 @@ number_t* lshift (number_t* number, int positions);
 /************** RSHIFT ***********************/
 number_t* rshift (number_t* number, int positions);
 
+#ifdef UNIT_TEST
+int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
+#endif
+
 #endif // NUMBER_H
