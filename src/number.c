@@ -72,7 +72,9 @@ static unsigned long binary2dec(char* binary) {
   unsigned long value = 0;
   while (pointer < strlen(bin)) {
     char bit = bin[strlen(bin)-pointer-1];
+#ifdef DEBUG
     printf("bit: %c\n", bit);
+#endif
     if (bit != '1' && bit != '0') {
       fprintf(stderr, "binary2dec: invalid bitstring (non binary char)\n");
       return 0;
@@ -272,6 +274,7 @@ static number_t* copy_number(number_t* number) {
 }
 
 static void calcLength(number_t* number) {
+  number->len = 0;
   for (int i = 1; i <= number->wordsize; i++) {
     if (number->bits[number->wordsize-i] == '1')
       number->len = i;
@@ -281,6 +284,7 @@ static void calcLength(number_t* number) {
 /*********************************************/
 /*********** OPERATIONS **********************/
 /*********************************************/
+
 number_t* add(number_t* a, number_t* b) {
   if (!a || !b) {
     perror("Can't add a NULL number(s)");
@@ -323,17 +327,18 @@ number_t* add(number_t* a, number_t* b) {
   return sum;
 }
 
-number_t* lshift(number_t* number, int positions) {
-  if (positions < 0) {
-    printf("positions must be positive\n");
+number_t* lshift(number_t* number, number_t* positions) {
+  int pos = binary2dec(positions->bits);
+  if (pos < 0) {
+    printf("pos must be positive\n");
     return NULL;
   }
   number_t* new_num = copy_number(number);
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
-  for (; i < number->wordsize - positions; i++) {
-    new[i] = old[i+positions];
+  for (; i < number->wordsize - pos; i++) {
+    new[i] = old[i+pos];
   }
   // zero the rest
   for (; i < number->wordsize; i++) 
@@ -342,9 +347,10 @@ number_t* lshift(number_t* number, int positions) {
   return new_num;
 }
 
-number_t* rshift(number_t* number, int positions) {
-  if (positions < 0) {
-    printf("positions must be positive\n");
+number_t* rshift(number_t* number, number_t* positions) {
+  int pos = binary2dec(positions->bits);
+  if (pos < 0) {
+    printf("pos must be positive\n");
     return NULL;
   }
   number_t* new_num = copy_number(number);
@@ -352,11 +358,11 @@ number_t* rshift(number_t* number, int positions) {
   char* new = new_num->bits;
   int i = 0;
   // fill msb's with zeroes
-  for (; i < number->wordsize-number->len+positions; i++)
+  for (; i < number->wordsize-number->len+pos; i++)
     new[i] = '0';
   // fill the shifted bits
   for (; i < number->wordsize; i++)
-    new[i] = old[i-positions];
+    new[i] = old[i-pos];
   // calculate new length
   calcLength(new_num);  
   return new_num;
@@ -454,6 +460,27 @@ int isEqualToBitstring (number_t* n, char* s) {
   return 0;
 }
 
+int test_lshift (char* num, char* pos, char* expected, int wordsize, char* msg) {
+  printf("_____ LSHIFT num << pos (%d-bit Numbers) _____\n", wordsize);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* n = new_number(BINARY, num, wordsize);
+  number_t* p = new_number(BINARY, pos, wordsize);
+  printf("num = "); printBits(n); printf("\n");
+  printf("pos = "); printBits(p); printf("\n");
+  printf("expected num << pos = %s\n", expected);
+  number_t* res = lshift(n, p);
+  printf("actual num << pos = "); printBits(res); printf("\n");
+  int ret = isEqualToBitstring(res, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  delete_number(n);
+  delete_number(p);
+  delete_number(res);
+  return ret;
+}
 int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
   printf("_____ ADD a+b (%d-bit Numbers) _____\n", wordsize);
   if (msg != NULL) 

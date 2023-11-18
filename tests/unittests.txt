@@ -35,4 +35,29 @@ b = 11000000
 expected a+b = 0
 actual a+b = 0
 Test Passed!
+Testing LSHIFT
+_____ LSHIFT num << pos (8-bit Numbers) _____
+num = 110011
+pos = 1
+expected num << pos = 1100110
+actual num << pos = 1100110
+Test Passed!
+_____ LSHIFT num << pos (8-bit Numbers) _____
+num = 110011
+pos = 10
+expected num << pos = 11001100
+actual num << pos = 11001100
+Test Passed!
+_____ LSHIFT num << pos (8-bit Numbers) _____
+num = 110011
+pos = 11
+expected num << pos = 10011000
+actual num << pos = 10011000
+Test Passed!
+_____ LSHIFT num << pos (8-bit Numbers) _____
+num = 110011
+pos = 1111
+expected num << pos = 0
+actual num << pos = 0
+Test Passed!
 All Tests Passed!
