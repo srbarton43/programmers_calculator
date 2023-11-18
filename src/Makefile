@@ -13,21 +13,20 @@ TESTS = $T/test_number $T/test_parser
 
 T = unittests
 
-all: $(TESTS)
+all:
 
-$T/test_number: number.c $T/utils.o
-	$(CC) $(CFLAGS) -DUNIT_TEST -I../include number.c $T/utils.o -o $@
-
-$T/utils.o: ../include/utils.h
-	$(CC) $(CFLAGS) -c utils.c -o $@
-
-$T/test_parser: parser.c
-	$(CC) $(CFLAGS) -DUNIT_TEST -l$(LIBS) parser.c -o $@
+# $T/test_number: number.c $T/utils.o
+# 	$(CC) $(CFLAGS) -DUNIT_TEST -I../include number.c $T/utils.o -o $@
+# 
+# $T/utils.o: ../include/utils.h
+# 	$(CC) $(CFLAGS) -c utils.c -o $@
+# 
+# $T/test_parser: parser.c
+# 	$(CC) $(CFLAGS) -DUNIT_TEST -l$(LIBS) parser.c -o $@
+# 	
+test:
+	make -C $T test
 	
-test: $(TESTS)
-	$T/test_parser
-	$T/test_number
-
 clean:
 	rm -f *.o
-	make -C unittests clean
+	make -C $T clean

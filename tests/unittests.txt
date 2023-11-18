@@ -1,0 +1,38 @@
+make -C src test
+make -C unittests test
+./unittest
+******* Unit Tests ********
+Testing the Add Operator
+_____ ADD a+b (8-bit Numbers) _____
+a = 1101
+b = 1011
+expected a+b = 11000
+actual a+b = 11000
+Test Passed!
+_____ ADD a+b (8-bit Numbers) _____
+a = 1111
+b = 1111
+expected a+b = 11110
+actual a+b = 11110
+Test Passed!
+_____ ADD a+b (8-bit Numbers) _____
+a = 1100
+b = 10001
+expected a+b = 11101
+actual a+b = 11101
+Test Passed!
+_____ ADD a+b (8-bit Numbers) _____
+Objective: Adding Zero
+a = 0
+b = 10001
+expected a+b = 10001
+actual a+b = 10001
+Test Passed!
+_____ ADD a+b (8-bit Numbers) _____
+Objective: Adding Two's Complement
+a = 1000000
+b = 11000000
+expected a+b = 0
+actual a+b = 0
+Test Passed!
+All Tests Passed!
