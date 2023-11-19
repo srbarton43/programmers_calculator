@@ -8,7 +8,7 @@
 #include "../include/number.h"
 #include "../include/utils.h"
 
-static unsigned long binary2dec(char* binary);
+static unsigned long binary2dec(number_t* number);
 static char* binary2hex(char* binary);
 static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
@@ -23,12 +23,16 @@ number_t* new_number(type_e type, char* number, int wordsize) {
   }
   number_t* new_num = malloc(sizeof(number_t));
   new_num->wordsize = wordsize;
+  new_num->len = 0;
   new_num->bits = malloc(wordsize*sizeof(char));
   // zero bits
   for (int i = 0; i < wordsize; i++) {
     new_num->bits[i] = '0';
   }
   int slen = strlen(number);
+  if (slen == 1 && number[0] == '0') {
+
+  } else {
   switch (type) {
     case BINARY:
       for (int i = 1; i <= wordsize; i++) {
@@ -48,6 +52,7 @@ number_t* new_number(type_e type, char* number, int wordsize) {
       perror("new_number: not a valid number type");
       free(new_num);
       return NULL;
+    }
   }
   return new_num;
 }
@@ -63,17 +68,15 @@ number_t* new_number(type_e type, char* number, int wordsize) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-static unsigned long binary2dec(char* binary) {
-  if (binary == NULL) {
-    fprintf(stderr, "binary2dec: null bitstring\n");
+static unsigned long binary2dec(number_t* num) {
+  if (num == NULL) {
+    fprintf(stderr, "binary2dec: null number\n");
     return 0;
   }
-  char bin[strlen(binary)+1];
-  strcpy(bin, binary);
-  int pointer = 0;
+  char* bin = num->bits;
   unsigned long value = 0;
-  while (pointer < strlen(bin)) {
-    char bit = bin[strlen(bin)-pointer-1];
+  for (int i = 1; i <= num->len; i++) {
+    char bit = bin[num->wordsize - i];
 #ifdef DEBUG
     printf("bit: %c\n", bit);
 #endif
@@ -82,9 +85,8 @@ static unsigned long binary2dec(char* binary) {
       return 0;
     }
     if (bit == '1') {
-      value += 1 << pointer;
+      value += 1 << (i-1);
     }
-    pointer++;
   }
   return value;
 }
@@ -291,7 +293,7 @@ number_t* twos_comp(number_t* num) {
   number_t* ones = copy_number(num);
   
   // flip bits
-  for (int i = 0; i <= num->wordsize; i++) {
+  for (int i = 0; i < num->wordsize; i++) {
     if (num->bits[i] == '1') 
       ones->bits[i] = '0';
     else
@@ -362,7 +364,7 @@ number_t* sub (number_t* a, number_t* b) {
 }
 
 number_t* lshift(number_t* number, number_t* positions) {
-  int pos = binary2dec(positions->bits);
+  int pos = binary2dec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
@@ -382,7 +384,7 @@ number_t* lshift(number_t* number, number_t* positions) {
 }
 
 number_t* rshift(number_t* number, number_t* positions) {
-  int pos = binary2dec(positions->bits);
+  int pos = binary2dec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
@@ -391,9 +393,16 @@ number_t* rshift(number_t* number, number_t* positions) {
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
+#ifdef DEBUG
+    printf("len: %d, ws: %d\n", new_num->len, new_num->wordsize);
+#endif
   // fill msb's with zeroes
-  for (; i < number->wordsize-number->len+pos; i++)
+  for (; i < number->wordsize && i < number->wordsize - number->len + pos; i++) {
+#ifdef DEBUG
+    printf("idx: %d\n", i);
+#endif
     new[i] = '0';
+  }
   // fill the shifted bits
   for (; i < number->wordsize; i++)
     new[i] = old[i-pos];
@@ -450,7 +459,7 @@ int isEqualToBitstring (number_t* n, char* s) {
 }
 
 int test_twos_comp(char* num, char* expected, int wordsize, char* msg) {
-  printf("_____ TWO's COMPLEMENT(num) with %-bit words _____\n", wordsize);
+  printf("_____ TWO's COMPLEMENT(num) with %d-bit words _____\n", wordsize);
   if (msg != NULL) 
     printf("Objective: %s\n", msg);
   number_t* n = new_number(BINARY, num, wordsize);
