@@ -93,6 +93,12 @@ number_t* twos_comp(number_t* num);
  */
 number_t* add (number_t* a, number_t* b);
 
+/***************** SUB ***********************/
+/*
+ * subtract a from b
+ */
+number_t* sub (number_t* a, number_t* b);
+
 /************** LSHIFT ***********************/
 /*
  * lshifts number by positions
@@ -138,6 +144,7 @@ number_t* rshift (number_t* number, number_t* positions);
 
 int test_twos_comp(char* num, char* expected, int wordsize, char* msg);
 int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
+int test_sub(char* a, char* b, char* expected, int wordsize, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 

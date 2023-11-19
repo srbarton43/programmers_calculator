@@ -79,4 +79,57 @@ pos = 11
 expected num >> pos = 110
 actual num >> pos = 110
 Test Passed!
+_____ RSHIFT num >> pos (8-bit Numbers) _____
+num = 110011
+pos = 1111
+expected num >> pos = 0
+actual num >> pos = 0
+Test Passed!
+Testing TWO's COMPLEMENT
+_____ TWO's COMPLEMENT(num) with bit words _____
+Objective: Minimum Integer
+num = 1
+expected two's complement = 11111111
+actual two's complement = 11111111
+Test Passed!
+_____ TWO's COMPLEMENT(num) with bit words _____
+Objective: Maximum Integer
+num = 1111111
+expected two's complement = 10000001
+actual two's complement = 10000001
+Test Passed!
+_____ TWO's COMPLEMENT(num) with bit words _____
+Objective: Zero to Zero
+num = 0
+expected two's complement = 0
+actual two's complement = 0
+Test Passed!
+_____ TWO's COMPLEMENT(num) with bit words _____
+Objective: -1 to 1
+num = 11111111
+expected two's complement = 1
+actual two's complement = 1
+Test Passed!
+Testing TWO's COMPLEMENT
+_____ SUB b-a (8-bit Numbers) _____
+Objective: 2-1 = 1
+b = 10
+a = 1
+expected b-a = 1
+actual b-a = 1
+Test Passed!
+_____ SUB b-a (8-bit Numbers) _____
+Objective: 63-64 = -1
+b = 11111110
+a = 11111111
+expected b-a = 11111111
+actual b-a = 11111111
+Test Passed!
+_____ SUB b-a (8-bit Numbers) _____
+Objective: 15-15 = 0
+b = 1111
+a = 1111
+expected b-a = 0
+actual b-a = 0
+Test Passed!
 All Tests Passed!

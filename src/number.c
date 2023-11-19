@@ -352,6 +352,15 @@ number_t* add(number_t* a, number_t* b) {
   return sum;
 }
 
+number_t* sub (number_t* a, number_t* b) {
+  number_t* neg_a = twos_comp(a);
+  number_t* sum = add(b, neg_a);
+
+  delete_number(neg_a);
+
+  return sum;
+}
+
 number_t* lshift(number_t* number, number_t* positions) {
   int pos = binary2dec(positions->bits);
   if (pos < 0) {
@@ -502,6 +511,7 @@ int test_rshift (char* num, char* pos, char* expected, int wordsize, char* msg) 
   delete_number(res);
   return ret;
 }
+
 int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
   printf("_____ ADD a+b (%d-bit Numbers) _____\n", wordsize);
   if (msg != NULL) 
@@ -524,4 +534,25 @@ int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
   return ret;
 }
 
+int test_sub (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
+  printf("_____ SUB b-a (%d-bit Numbers) _____\n", wordsize);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* a = new_number(BINARY, aS, wordsize);
+  number_t* b = new_number(BINARY, bS, wordsize);
+  printf("b = "); printBits(b); printf("\n");
+  printf("a = "); printBits(a); printf("\n");
+  printf("expected b-a = %s\n", expected);
+  number_t* sum = sub(a, b);
+  printf("actual b-a = "); printBits(sum); printf("\n");
+  int ret = isEqualToBitstring(sum, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  delete_number(a);
+  delete_number(b);
+  delete_number(sum);
+  return ret;
+}
 #endif

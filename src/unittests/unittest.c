@@ -30,6 +30,11 @@ int main (int argc, char* argv[]) {
   ret = max(ret, test_twos_comp("0", "0", 8, "Zero to Zero"));
   ret = max(ret, test_twos_comp("11111111", "1", 8, "-1 to 1"));
   
+  printf("Testing TWO's COMPLEMENT\n");
+  ret = max(ret, test_sub("1", "10", "1", 8, "2-1 = 1"));
+  ret = max(ret, test_sub("11111111", "11111110", "11111111", 8, "63-64 = -1"));
+  ret = max(ret, test_sub("1111", "1111", "0", 8, "15-15 = 0"));
+  
   if (!ret) printf("All Tests Passed!\n");
   return ret;
 }
