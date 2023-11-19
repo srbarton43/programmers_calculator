@@ -65,6 +65,13 @@ void number_print(number_t* number);
  */
 void delete_number(number_t* number);
 
+/********* TWO's COMPLEMENT****************/
+/*
+ *
+ *
+ */
+number_t* twos_comp(number_t* num);
+
 /************** ADD ***********************/
 /*
  * adds two numbers together
@@ -129,6 +136,7 @@ number_t* rshift (number_t* number, number_t* positions);
 
 #ifdef UNIT_TEST
 
+int test_twos_comp(char* num, char* expected, int wordsize, char* msg);
 int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);

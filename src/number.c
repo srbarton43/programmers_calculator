@@ -1,3 +1,5 @@
+// A THOUGHT
+// operations could store result in second param? like asm
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -285,6 +287,29 @@ static void calcLength(number_t* number) {
 /*********** OPERATIONS **********************/
 /*********************************************/
 
+number_t* twos_comp(number_t* num) {
+  number_t* ones = copy_number(num);
+  
+  // flip bits
+  for (int i = 0; i <= num->wordsize; i++) {
+    if (num->bits[i] == '1') 
+      ones->bits[i] = '0';
+    else
+      ones->bits[i] = '1';
+  }
+  
+  // add one
+  number_t* one = new_number(BINARY, "1", num->wordsize);
+  
+  number_t* twos = add(one, ones);
+  
+  // cleanup
+  delete_number(ones);
+  delete_number(one);
+  
+  return twos;
+}
+
 number_t* add(number_t* a, number_t* b) {
   if (!a || !b) {
     perror("Can't add a NULL number(s)");
@@ -393,51 +418,6 @@ int isEqual(number_t* a, number_t* b) {
 
 #ifdef UNIT_TEST
 
-// int main(int argc, char* argv[]) {
-//   printf("Testing Number API\n");
-//   number_t* num1;
-//   num1 = new_number(BINARY, "111100001111", 8);
-//   number_print(num1);
-//   delete_number(num1);
-//   num1 = new_number(BINARY, "00001111", 8);
-//   number_print(num1);
-//   delete_number(num1);
-//   num1 = new_number(BINARY, "1111", 8);
-//   number_print(num1);
-//   delete_number(num1);
-//   num1 = new_number(BINARY, "01111", 8);
-//   number_print(num1);
-//   printf("lshift by 2\n");
-//   number_t* num2 = lshift(num1, 2);
-//   number_print(num2);
-//   printf("lshift last by 4\n");
-//   number_t* num3 = lshift(num2, 4);
-//   number_print(num3);
-//   delete_number(num1);
-//   delete_number(num2);
-//   delete_number(num3);
-//   num1 = new_number(BINARY, "11001100", 8);
-//   number_print(num1);
-//   printf("rshift by 2\n");
-//   num2 = rshift(num1, 2);
-//   number_print(num2);
-//   delete_number(num1);
-//   delete_number(num2);
-//   num1 = new_number(BINARY, "", 4);
-//   number_print(num1);
-//   delete_number(num1);
-//   num1 = new_number(BINARY, "1101", 8);
-//   num2 = new_number(BINARY, "1100", 8);
-//   number_print(num1);
-//   number_print(num2);
-//   printf("adding last two nums\n");
-//   num3 = add(num1, num2);
-//   number_print(num3);
-//   delete_number(num1);
-//   delete_number(num2);
-//   delete_number(num3);
-// }
-
 int isEqualToBitstring (number_t* n, char* s) {
   if (!n || !s) {
     printf("%d\n", __LINE__);
@@ -458,6 +438,25 @@ int isEqualToBitstring (number_t* n, char* s) {
     }
   }
   return 0;
+}
+
+int test_twos_comp(char* num, char* expected, int wordsize, char* msg) {
+  printf("_____ TWO's COMPLEMENT(num) with %-bit words _____\n", wordsize);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* n = new_number(BINARY, num, wordsize);
+  printf("num = "); printBits(n); printf("\n");
+   printf("expected two's complement = %s\n", expected);
+  number_t* twos = twos_comp(n);
+  printf("actual two's complement = "); printBits(twos); printf("\n");
+  int ret = isEqualToBitstring(twos, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Passed!\n");
+  delete_number(n);
+  delete_number(twos);
+  return ret;
 }
 
 int test_lshift (char* num, char* pos, char* expected, int wordsize, char* msg) {
