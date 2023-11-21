@@ -13,20 +13,23 @@ TESTS = $T/test_number $T/test_parser
 
 T = unittests
 
-all:
+BISON = /opt/homebrew/opt/bison/bin/bison
+FLEX = /opt/homebrew/opt/flex/bin/flex
 
-# $T/test_number: number.c $T/utils.o
-# 	$(CC) $(CFLAGS) -DUNIT_TEST -I../include number.c $T/utils.o -o $@
-# 
-# $T/utils.o: ../include/utils.h
-# 	$(CC) $(CFLAGS) -c utils.c -o $@
-# 
-# $T/test_parser: parser.c
-# 	$(CC) $(CFLAGS) -DUNIT_TEST -l$(LIBS) parser.c -o $@
-# 	
+all: test_parser
+
+test_parser: parser.tab.c lexer.c
+	cc -Wall $^ -ll -o $@
+
+parser.tab.c: parser.y
+	$(BISON) -d $^
+
+lexer.c: lexer.l
+	$(FLEX) -o $@ $^
+ 	
 test:
 	make -C $T test
 	
 clean:
-	rm -f *.o
+	rm -f *.o *.tab.* lexer.c test_parser
 	make -C $T clean
