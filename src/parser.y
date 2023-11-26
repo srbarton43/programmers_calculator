@@ -1,9 +1,10 @@
 %{
   #include <stdio.h>
   #include <stdlib.h>
+  #include <stdarg.h>
   int yylex(void);
   int yylex_destroy(void);
-  void yyerror(const char* s);
+  void yyerror(const char* s, ...);
 %}
 
 /* tokens */
@@ -14,33 +15,38 @@
   int i_value;
 }
 
-%token <s_value> BIN DEC HEX
+%token <s_value> BIN DEC HEX VAR
 %token <i_value> LSHIFT RSHIFT
 %token <i_value> QUIT ECHO_N EOL
 %token <c_value> ADD SUB
 
 %type <c_value> '+' '-'
-%type <s_value> number expression
+%type <s_value> number expression statement
+
+%left '-' '+' RSHIFT LSHIFT
 
 /*  grammar  */
 %%
 
 input: /*nothing*/
-     | input line EOL
-     | input error EOL
+     | input line
      ;
 
-line: statement
-    | expression
+line: EOL
+    | statement EOL { printf("line\n"); }
+    | error EOL
     ;
 
 statement: QUIT { exit(0); }
          | ECHO_N number { printf("echoing %s\n", $2); }
+         | expression { printf("expression\n"); }
          ;
 
 expression: number
-          | number '+' number { printf("adding\n"); }
-          | number '-' number { printf("subtracting\n"); }
+          | expression RSHIFT number  { printf("rshift\n"); }
+          | expression LSHIFT number  { printf("lshift\n"); }
+          | expression '+' expression { printf("adding\n"); }
+          | expression '-' expression { printf("subtracting\n"); }
           ;
 
 number: DEC { printf("decimal\n"); $$ = $1; }
@@ -56,6 +62,14 @@ int main(int argc, char** argv) {
   return ret;
 }
 
-void yyerror(const char* s) {
-  fprintf(stderr, "error: %s\n", s);
+void yyerror(const char* str, ...)
+  {
+  va_list args;
+
+  va_start (args, str);
+//fprintf (stderr,"%d: ", line_no);
+  vfprintf (stderr, str, args);
+  fprintf (stderr, "\n");
+  va_end (args);
 }
+
