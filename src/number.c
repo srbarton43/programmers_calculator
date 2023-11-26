@@ -31,7 +31,7 @@ number_t* new_number(type_e type, char* number, int wordsize) {
   }
   int slen = strlen(number);
   if (slen == 1 && number[0] == '0') {
-
+    // the number is zero
   } else {
   switch (type) {
     case BINARY:
@@ -49,7 +49,7 @@ number_t* new_number(type_e type, char* number, int wordsize) {
       }
       break;
     default:
-      perror("new_number: not a valid number type");
+      perror("new_number: not a supported number type");
       free(new_num);
       return NULL;
     }
@@ -80,10 +80,6 @@ static unsigned long binary2dec(number_t* num) {
 #ifdef DEBUG
     printf("bit: %c\n", bit);
 #endif
-    if (bit != '1' && bit != '0') {
-      fprintf(stderr, "binary2dec: invalid bitstring (non binary char)\n");
-      return 0;
-    }
     if (bit == '1') {
       value += 1 << (i-1);
     }
@@ -229,8 +225,10 @@ static void hex2binary(char* binary, char* hex) {
 }
 
 void delete_number (number_t* number) {
-  free(number->bits);
-  free(number);
+  if (number) {
+    free(number->bits);
+    free(number);
+  }
 }
 
 void number_print(number_t* number) {
@@ -239,15 +237,7 @@ void number_print(number_t* number) {
   printf("WORDSIZE %d\n", number->wordsize);
   printf("LENGTH %d\n", number->len);
   char* bs = number->bits;
-  printf("BITSTRING ");
-  if (number->len == 0) {
-    printf("0"); 
-  } else {
-    for (int i = number->wordsize - number->len; i < number->wordsize; i++) {
-      printf("%c", bs[i]);
-    }
-  }
-  printf("\n");
+  printf("BITSTRING "); printBits(number); printf("\n");
   printf("RAW ");
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
