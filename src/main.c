@@ -18,9 +18,11 @@ int main() {
   ht = setup_ht();
   int ret = yyparse();
   yylex_destroy();
+#ifdef DEBUG
   printf("********************************\n");
   printf("****** printing hashtable ******\n");
   hashtable_print(ht, stdout, item_print);
+#endif
   hashtable_delete(ht, item_delete);
   free_numbers();
   return ret;

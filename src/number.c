@@ -394,7 +394,7 @@ number_t* add(number_t* a, number_t* b) {
 }
 
 number_t* sub (number_t* a, number_t* b) {
-  number_t* neg_a = twos_comp(a, b->wordsize);
+  number_t* neg_a = twos_comp(a, max(b->wordsize, a->wordsize));
   number_t* sum = add(b, neg_a);
 
   delete_number(neg_a);
