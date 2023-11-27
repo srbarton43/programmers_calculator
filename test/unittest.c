@@ -1,7 +1,7 @@
 #include "number.h"
 #include "utils.h"
 
-int main (int argc, char* argv[]) {
+int main () {
   printf("******* Unit Tests ********\n");
   int ret = 0;
   
