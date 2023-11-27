@@ -8,11 +8,12 @@
 #include "../include/number.h"
 #include "../include/utils.h"
 
+number_t* _zero_;
+number_t* _one_;
+
 static unsigned int binary2udec(number_t* number);
 static char* binary2hex(char* binary);
-// static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
-static void refresh_number (number_t* number);
 static void calcLength(number_t* number);
 static void printBits(number_t* num);
 
@@ -123,7 +124,7 @@ static unsigned int binary2sdec(number_t* num) {
   char* bin = num->bits;
   long value;
   if (bin[0] == '1')
-    value = - (1 << num->wordsize-1);
+    value = - (1 << (num->wordsize-1));
   else
     value = 0;
   for (int i = 1; i <= num->len && i < num->wordsize; i++) {
@@ -269,6 +270,16 @@ void delete_number (number_t* number) {
   }
 }
 
+void init_numbers(void) {
+  _zero_ = new_number(BINARY, "0", WORDSIZE);
+  _one_ = new_number(BINARY, "1", WORDSIZE);
+}
+
+void free_numbers(void) {
+  delete_number(_zero_);
+  delete_number(_one_);
+}
+
 void number_print(number_t* number) {
   printf("--------------\n");
   printf("NUMBER %p\n", number);
@@ -296,7 +307,7 @@ static void printBits(number_t* num) {
   }
 }
 
-static number_t* copy_number(number_t* number) {
+number_t* copy_number(number_t* number) {
   number_t* new_num = malloc(sizeof(number_t));
   new_num->wordsize = number->wordsize;
   new_num->isSign = number->isSign;
@@ -441,23 +452,23 @@ number_t* rshift(number_t* number, number_t* positions) {
   return new_num;
 }
 
-int isEqual(number_t* a, number_t* b) {
+int numbers_are_equal(number_t* a, number_t* b) {
   if (!a || !b) {
     perror("One of the numbers is NULL");
-    return 1;
+    return 0;
   }
   if (a->len != b->len) {
     printf("A and B's length are different");
-    return 1;
+    return 0;
   }
 
   for (int i = 0; i <= a->len; i++) {
     if (a->bits[a->wordsize-i] != b->bits[b->wordsize-i])
-      return 1;
+      return 0;
   }
   
   // they are equal!
-  return 0;
+  return 1;
 }
 
 /***********************************/

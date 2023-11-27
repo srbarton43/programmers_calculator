@@ -18,8 +18,6 @@
   char* ht_add_string(const char* number, type_e type);
   char* ht_add_number(number_t* number);
   number_t* ht_get_num(const char* number);
-
-  #define WORDSIZE 8
   
 %}
 
@@ -151,23 +149,30 @@ char* ht_add_string(const char* number, type_e type) {
   
   // get the binary key associated with the number
   char* key = malloc(100*sizeof(char)); // TODO free this memory later
-  unsigned long decimal;
-  switch (type) {
-    case BINARY:
-      strcpy(key, number);
-      break;
-    case DECIMAL:
-      decimal = atol(number);
-      dec2binary(decimal, key);
-      break;
-    default: // TODO hex and dec
-      printf("error\n");
-      yyerror("key is bad");
-      return NULL;
+  int slen = strlen(number);
+  char* chopped = number;
+  while(chopped != slen && *chopped == '0') chopped++;
+  if (strlen(chopped) < 1)
+    strcpy(key, "0");
+  else {
+    unsigned long decimal;
+    switch (type) {
+      case BINARY:
+        strcpy(key, chopped);
+        break;
+      case DECIMAL:
+        decimal = atol(chopped);
+        dec2binary(decimal, key);
+        break;
+      default: // TODO hex and dec
+        printf("error\n");
+        yyerror("key is bad");
+        return NULL;
+    }
+    bool ret = hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
+    if (!ret) printf("%s already in ht\n", key);
   }
   
-  bool ret = hashtable_insert(ht, key, new_number(type, number, WORDSIZE));
-  if (!ret) printf("%s already in ht\n", key);
   return key; 
 }
  
@@ -184,6 +189,10 @@ char* ht_add_string(const char* number, type_e type) {
  */ 
 char* ht_add_number(number_t* number) {
   char* key = malloc(100*sizeof(char)); // TODO free this later
+  if (numbers_are_equal(number, _zero_)) {
+    strcpy(key, "0");
+    return key;
+  }
   int i = 0;
   for(; i < number->len; i++) {
     key[i] = number->bits[i + number->wordsize - number->len];

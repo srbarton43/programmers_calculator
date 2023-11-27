@@ -14,6 +14,9 @@ typedef struct number {
   char* bits;     // non null-terminated bitstring
 } number_t;      
 
+extern number_t* _zero_;
+extern number_t* _one_;
+
 /************** FUNCTIONS *******************/
 
 /************** NEW_NUMBER ******************/
@@ -64,6 +67,26 @@ void number_print(number_t* number);
  *    number will be freed from heap
  */
 void delete_number(number_t* number);
+
+number_t* copy_number(number_t* number);
+
+int numbers_are_equal(number_t* a, number_t* b);
+
+/**********     INIT_NUMBERS     ********/
+/*
+ * Initializes special numbers
+ */
+void init_numbers(void);
+
+/**********     INIT_NUMBERS     ********/
+/*
+ * Frees special numbers
+ */
+void free_numbers(void);
+
+/////////////////////////////////////////
+//           OPERATORS                 //
+/////////////////////////////////////////
 
 /************* dec2binary **************/
 /*
