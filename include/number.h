@@ -14,6 +14,9 @@ typedef struct number {
   char* bits;     // non null-terminated bitstring
 } number_t;      
 
+extern number_t* _zero_;
+extern number_t* _one_;
+
 /************** FUNCTIONS *******************/
 
 /************** NEW_NUMBER ******************/
@@ -36,7 +39,7 @@ typedef struct number {
  *
  * example: new_number(BINARY, "1101", 9)
  */
-number_t* new_number(type_e type, char* number, int wordsize);
+number_t* new_number(type_e type, const char* number, int wordsize);
 
 /************** NUMBER_PRINT ****************/
 /* Prints the Number Struct to stdout
@@ -65,12 +68,77 @@ void number_print(number_t* number);
  */
 void delete_number(number_t* number);
 
+/*
+ * copies number param
+ *
+ * params:
+ *    number_t* number  := number to copy
+ *    int wordsize      := wordsize of returned number (same as param if 0)
+ * returns:
+ *    allocated number_t* num where
+ *      num->wordsize = number->wordsize ? wordsize == 0
+ *        else num->wordsize = wordsize
+ *      number->bits = num->bits
+ *      
+ * caller must:
+ *    call delete_number(num)
+ *
+ * we guarantee:
+ *    params aren't modified
+ */
+number_t* copy_number(number_t* number, int wordsize);
+
+int numbers_are_equal(number_t* a, number_t* b);
+
+/**********     INIT_NUMBERS     ********/
+/*
+ * Initializes special numbers
+ */
+void init_numbers(void);
+
+/**********     INIT_NUMBERS     ********/
+/*
+ * Frees special numbers
+ */
+void free_numbers(void);
+
+/////////////////////////////////////////
+//           OPERATORS                 //
+/////////////////////////////////////////
+
+/************* dec2binary **************/
+/*
+ * Converts unsigned decimal to bitstring
+ *
+ * uses divideBy2 algorithm
+ *
+ * parameters:
+ *  decimal => unsigned decimal value
+ *  binary => bitstring to return
+ * returns:
+ *  none
+ */
+void dec2binary(unsigned long decimal, char* binary);
+
+/*             hex2binary               */
+/*
+ * Converts hexstring to bitstring
+ * 
+ * params:
+ *    char* hex     := hexstring (not including '0x')
+ *    char* binary  := bitstring
+ * 
+ * returns:
+ *    nothing
+ */
+void hex2binary(const char* hex, char* binary);
+
 /********* TWO's COMPLEMENT****************/
 /*
  *
  *
  */
-number_t* twos_comp(number_t* num);
+number_t* twos_comp(number_t* num, int wordsize);
 
 /************** ADD ***********************/
 /*
@@ -143,8 +211,9 @@ number_t* rshift (number_t* number, number_t* positions);
 #ifdef UNIT_TEST
 
 int test_twos_comp(char* num, char* expected, int wordsize, char* msg);
-int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
-int test_sub(char* a, char* b, char* expected, int wordsize, char* msg);
+int test_add (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
+int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
+int test_copy_number (char* num, int iws, int ows, char* expected, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 
