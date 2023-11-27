@@ -12,7 +12,6 @@ number_t* _zero_;
 number_t* _one_;
 
 static unsigned int binary2udec(number_t* number);
-static char* binary2hex(char* binary);
 static void calcLength(number_t* number);
 static void printBits(number_t* num);
 
@@ -149,59 +148,6 @@ static unsigned int binary2sdec(number_t* num) {
     }
   }
   return value;
-}
-/********* binary2hex *************/
-/* calculates the unsigned decimal for bitstring
- *
- * parameters:
- *  char* hex => hexstring
- *  char* binary => bitstring
- * returns:
- *  nothing
- *
- * We Assume:
- *  binary is non-negative and contains only 1's and 0's
- */
-static char* binary2hex (char* binary) {
-  if (binary == NULL) {
-    fprintf(stderr, "binary2udec: null bitstring\n");
-  }
-  int hex_len = strlen(binary)/4+1;
-  char hex_arr[hex_len];
-  int bitPointer = 0;
-  int bitValue = 0;
-  int nibblePointer = 0;
-  int nibbleVal = 0;
-  while(bitPointer < strlen(binary)) {
-    if (bitValue == 4) {
-      if (nibbleVal < 10) {
-        hex_arr[hex_len - nibblePointer - 1] = nibbleVal + '0';
-      } else {
-        hex_arr[hex_len - nibblePointer - 1] = nibbleVal - 10 + 'a';
-      }
-      bitValue = 0;
-      nibbleVal = 0;
-      nibblePointer++;
-    }
-    char bit = binary[strlen(binary)-bitPointer-1];
-    if (bit != '1' && bit != '0') {
-      fprintf(stderr, "binary2hex: invalid bitstring (non bit char)\n");
-      return NULL;
-    }
-    if (bit == '1') {
-      nibbleVal += 1 << bitValue;
-    }
-    bitValue++;
-    bitPointer++;
-  }
-  if (nibbleVal < 10) {
-    hex_arr[hex_len - nibblePointer - 1] = nibbleVal + '0';
-  } else {
-    hex_arr[hex_len - nibblePointer - 1] = nibbleVal - 10 + 'a';
-  }
-  char* hex = malloc((hex_len + 1) * sizeof(char));
-  strcpy(hex, hex_arr);
-  return hex;
 }
 
 void dec2binary(unsigned long decimal, char* binary) {

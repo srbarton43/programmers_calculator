@@ -152,15 +152,13 @@ char* ht_add_string(const char* number, type_e type) {
   
   // get the binary key associated with the number
   char* key = malloc(100*sizeof(char)); // TODO free this memory later
-  int slen = strlen(number);
-  char* chopped = number;
+  const char* chopped = number;
   while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++;
   if (strlen(chopped) < 1)
     strcpy(key, "0");
   else {
     unsigned long decimal;
     char raw_hex[100];
-    char* hex = NULL;
     switch (type) {
       case BINARY:
         strcpy(key, chopped);

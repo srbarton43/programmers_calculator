@@ -17,7 +17,7 @@ hash_jenkins(const char* str, const unsigned long mod)
     return 0;
   }
 
-  size_t len = strlen(str);
+  int len = strlen(str);
   unsigned long hash = 0;
 
   for (int i = 0; i < len; i++) {
