@@ -8,7 +8,7 @@
 #include "../include/number.h"
 #include "../include/utils.h"
 
-static unsigned int binary2dec(number_t* number);
+static unsigned int binary2udec(number_t* number);
 static char* binary2hex(char* binary);
 // static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
@@ -74,7 +74,7 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
   return new_num;
 }
 
-/********* binary2dec *************/
+/********* binary2udec *************/
 /* calculates the unsigned decimal for bitstring
  *
  * parameters:
@@ -85,9 +85,9 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-static unsigned int binary2dec(number_t* num) {
+static unsigned int binary2udec(number_t* num) {
   if (num == NULL) {
-    fprintf(stderr, "binary2dec: null number\n");
+    fprintf(stderr, "binary2udec: null number\n");
     return 0;
   }
   char* bin = num->bits;
@@ -104,6 +104,39 @@ static unsigned int binary2dec(number_t* num) {
   return value;
 }
 
+/********* binary2sdec *************/
+/* calculates the signed decimal for bitstring
+ *
+ * parameters:
+ *  char* binary => bitstring
+ * returns:
+ *  int => unsigned decimal given by bitstring
+ *
+ * We Assume:
+ *  binary contains only 1's and 0's
+ */
+static unsigned int binary2sdec(number_t* num) {
+  if (num == NULL) {
+    fprintf(stderr, "binary2sdec: null number\n");
+    return 0;
+  }
+  char* bin = num->bits;
+  long value;
+  if (bin[0] == '1')
+    value = - (1 << num->wordsize-1);
+  else
+    value = 0;
+  for (int i = 1; i <= num->len && i < num->wordsize; i++) {
+    char bit = bin[num->wordsize - i];
+#ifdef DEBUG
+    printf("bit: %c\n", bit);
+#endif
+    if (bit == '1') {
+      value += 1 << (i-1);
+    }
+  }
+  return value;
+}
 /********* binary2hex *************/
 /* calculates the unsigned decimal for bitstring
  *
@@ -118,7 +151,7 @@ static unsigned int binary2dec(number_t* num) {
  */
 static char* binary2hex (char* binary) {
   if (binary == NULL) {
-    fprintf(stderr, "binary2dec: null bitstring\n");
+    fprintf(stderr, "binary2udec: null bitstring\n");
   }
   int hex_len = strlen(binary)/4+1;
   char hex_arr[hex_len];
@@ -247,7 +280,8 @@ void number_print(number_t* number) {
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
   printf("\n");
-  printf("Unsigned Decimal Value: %d\n", binary2dec(number));
+  printf("Unsigned Decimal Value: %d\n", binary2udec(number));
+  printf("Signed Decimal Value: %d\n", binary2sdec(number));
   printf("--------------\n");
 }
 
@@ -360,7 +394,7 @@ number_t* sub (number_t* a, number_t* b) {
 }
 
 number_t* lshift(number_t* number, number_t* positions) {
-  int pos = binary2dec(positions);
+  int pos = binary2udec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
@@ -380,7 +414,7 @@ number_t* lshift(number_t* number, number_t* positions) {
 }
 
 number_t* rshift(number_t* number, number_t* positions) {
-  int pos = binary2dec(positions);
+  int pos = binary2udec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
