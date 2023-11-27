@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-typedef enum {BINARY, DECIMAL, HEX} type_e;
+typedef enum {BINARY, DECIMAL, HEXADECIMAL} type_e;
 
 typedef struct number {
   int wordsize;   // max wordsize for the bitstring

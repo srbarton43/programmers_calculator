@@ -10,4 +10,5 @@ subdir('src')
 subdir('test')
 
 executable( 'pcalc', src_files,
+            include_directories : inc,
             link_args : '-ll' )

@@ -56,11 +56,11 @@ number: DEC { printf("decimal\n"); $$ = $1; }
 
 %%
 
-int main(int argc, char** argv) {
-  int ret = yyparse();
-  yylex_destroy();
-  return ret;
-}
+// int main(int argc, char** argv) {
+//   int ret = yyparse();
+//   yylex_destroy();
+//   return ret;
+// }
 
 void yyerror(const char* str, ...)
   {
