@@ -16,9 +16,7 @@ int main() {
   ht = hashtable_new(10);
   int ret = yyparse();
   yylex_destroy();
-  // hashtable_insert(ht, "1101", new_number(BINARY, "1101", 8));
-  // hashtable_insert(ht, "1111", new_number(BINARY, "1111", 8));
-  printf("****** printing hashtable ******\n");
+  printf("\n****** printing hashtable ******\n");
   hashtable_print(ht, stdout, item_print);
   hashtable_delete(ht, item_delete);
   return ret;

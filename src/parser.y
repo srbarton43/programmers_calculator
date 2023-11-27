@@ -59,7 +59,12 @@ statement: QUIT { exit(0); }
               number_t* num = ht_get_num($2);
               number_print(num);
             }
-         | expression { printf("expression\n"); }
+         | expression 
+            {
+              printf("expression\n");
+              number_t* num = ht_get_num($1);
+              number_print(num);
+            }
          ;
 
 expression: number
@@ -67,7 +72,7 @@ expression: number
             { 
               printf("adding\n");
               number_t* num = add(ht_get_num($1), ht_get_num($3));
-              printf("result: \n"); number_print(num);
+              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;                                     
             }
@@ -75,7 +80,7 @@ expression: number
             { 
               printf("subtracting\n");
               number_t* num = sub(ht_get_num($3), ht_get_num($1));
-              printf("result: \n"); number_print(num);
+              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -83,7 +88,7 @@ expression: number
             { 
               printf("rshift\n"); 
               number_t* num = rshift(ht_get_num($1), ht_get_num($3));
-              printf("result: \n"); number_print(num);
+              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -91,7 +96,7 @@ expression: number
             {
               printf("lshift\n");
               number_t* num = lshift(ht_get_num($1), ht_get_num($3));
-              printf("result: \n"); number_print(num);
+              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
             }
