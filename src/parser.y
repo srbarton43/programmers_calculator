@@ -51,7 +51,10 @@ line: EOL
     | error EOL
     ;
 
-statement: QUIT { exit(0); }
+statement: QUIT
+            {
+              YYACCEPT; // return from yyparse with 0 return code
+            }
          | ECHO_N number 
             { 
               printf("echoing %s\n", $2);
@@ -109,7 +112,7 @@ expression: number
           ;
 
 number: DEC { printf("decimal\n"); char* key = ht_add_string($1, DECIMAL); $$ = key; }
-      | HEX { printf("hex\n"); $$ = $1; }
+      | HEX { printf("hex\n"); char* key = ht_add_string($1, HEXADECIMAL); $$ = key; }
       | BIN { printf("binary\n"); char* key = ht_add_string($1, BINARY); $$ = key; }
       ;
 
@@ -151,11 +154,13 @@ char* ht_add_string(const char* number, type_e type) {
   char* key = malloc(100*sizeof(char)); // TODO free this memory later
   int slen = strlen(number);
   char* chopped = number;
-  while(chopped != slen && *chopped == '0') chopped++;
+  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++;
   if (strlen(chopped) < 1)
     strcpy(key, "0");
   else {
     unsigned long decimal;
+    char raw_hex[100];
+    char* hex = NULL;
     switch (type) {
       case BINARY:
         strcpy(key, chopped);
@@ -163,6 +168,12 @@ char* ht_add_string(const char* number, type_e type) {
       case DECIMAL:
         decimal = atol(chopped);
         dec2binary(decimal, key);
+        break;
+      case HEXADECIMAL:
+        strcpy(raw_hex, chopped);
+        printf("raw_hex: %s\n", raw_hex);
+        hex2binary(raw_hex, key);
+        printf("hex key: %s\n", key);
         break;
       default: // TODO hex and dec
         printf("error\n");

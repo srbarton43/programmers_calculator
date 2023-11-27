@@ -13,7 +13,6 @@ number_t* _one_;
 
 static unsigned int binary2udec(number_t* number);
 static char* binary2hex(char* binary);
-static void hex2binary(char* binary, char* hex);
 static void calcLength(number_t* number);
 static void printBits(number_t* num);
 
@@ -31,41 +30,54 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
     new_num->bits[i] = '0';
   }
 
-  unsigned long decimal;
-
   int slen = strlen(number);
   if (slen == 1 && number[0] == '0') {
     // the number is zero
   } else {
-  switch (type) {
-    case BINARY:
-      for (int i = 1; i <= wordsize; i++) {
-        if (i <= slen)
-          new_num->bits[wordsize-i] = number[slen-i];
-        else
-          new_num->bits[wordsize-i] = '0';
+    char bits[65];
+    switch (type) {
+      case BINARY:
+        for (int i = 1; i <= wordsize; i++) {
+          if (i <= slen)
+            new_num->bits[wordsize-i] = number[slen-i];
+          else
+            new_num->bits[wordsize-i] = '0';
+        }
+        
+        break;
+      case DECIMAL:
+      {
+        unsigned long decimal = atol(number);
+        dec2binary(decimal, bits);
+        slen = strlen(bits);
+        for (int i = 1; i <= wordsize; i++) {
+          if (i <= slen)
+            new_num->bits[wordsize-i] = bits[slen-i];
+          else
+            new_num->bits[wordsize-i] = '0';
+        }
+        break;
       }
-      
-      break;
-    case DECIMAL:
-      decimal = atol(number);
-      char bits[65];
-      dec2binary(decimal, bits);
-      slen = strlen(bits);
-      for (int i = 1; i <= wordsize; i++) {
-        if (i <= slen)
-          new_num->bits[wordsize-i] = bits[slen-i];
-        else
-          new_num->bits[wordsize-i] = '0';
+      case HEXADECIMAL:
+      {
+        char bits[65];
+        hex2binary(number, bits);
+        printf("hex number: %s\n", bits);
+        slen = strlen(bits);
+        for (int i = 1; i <= wordsize; i++) {
+          if (i <= slen)
+            new_num->bits[wordsize-i] = bits[slen-i];
+          else
+            new_num->bits[wordsize-i] = '0';
+        }
+        break;
       }
-      break;
-
-    default:
-      perror("new_number: not a supported number type");
-      free(new_num);
-      return NULL;
+      default:
+        perror("new_number: not a supported number type");
+        free(new_num);
+        return NULL;
+      }
     }
-  }
   int i = wordsize-1;
   while (i >= 0 ) {
     if (new_num->bits[i] == '1')
@@ -216,49 +228,71 @@ void dec2binary(unsigned long decimal, char* binary) {
   strcpy(binary, bitstring);
 }
 
-static void hex2binary(char* binary, char* hex) {
+void hex2binary(const char* hex, char* binary) {
   if (hex == NULL) {
     fprintf(stderr, "hex2binary: null hexstring passed\n");
     return;
   }
-  int partial;
-  char MSNib = hex[0];
-  if (MSNib == '8' || MSNib == '9' || (MSNib >= 'a' && MSNib <= 'f')) {
-    partial = 0;
-  } else if (MSNib <= '7' && MSNib >= '5') {
-    partial = 3;
-  } else if (MSNib <= '4' && MSNib >= '2') {
-    partial = 2;
-  } else if (MSNib == '1' || MSNib == '0'){
-    partial = 1;
-  } else {
-    fprintf(stderr, "hex2binary: invalid MSB\n");
-    return;
-  }
-  int bitLength = strlen(hex)*4 + partial + 1;
+  // int partial;
+  // char MSNib = hex[0];
+  // if (MSNib == '8' || MSNib == '9' || (MSNib >= 'a' && MSNib <= 'f')) {
+  //   partial = 0;
+  // } else if (MSNib <= '7' && MSNib >= '5') {
+  //   partial = 3;
+  // } else if (MSNib <= '4' && MSNib >= '2') {
+  //   partial = 2;
+  // } else if (MSNib == '1' || MSNib == '0'){
+  //   partial = 1;
+  // } else {
+  //   fprintf(stderr, "hex2binary: invalid MSB\n");
+  //   return;
+  // }
+  // int bitLength = strlen(hex)*4 + partial + 1;
+  // char bitstring[bitLength];
+  // bitstring[bitLength-1] = '\0';
+  // int bitPointer = bitLength - 2;
+  // int hexPointer = strlen(hex) - 1;
+  // while (hexPointer >= 0) {
+  //   int nibbleVal;
+  //   char nibble = hex[hexPointer];
+  //   if ((nibble > 'f' || nibble < 'a') && !(nibble < '0' || nibble > '9')) {
+  //     fprintf(stderr, "hex2binary: invalid hex character\n");
+  //     return;
+  //   }
+  //   if (nibble >= 'a') {
+  //     nibbleVal = nibble - 'a' + 10;
+  //   } else {
+  //     nibbleVal = nibble - '0';
+  //   }
+  //   while (nibbleVal != 0) {
+  //     int rem = nibbleVal % 2;
+  //     bitstring[bitPointer] = rem + '0';
+  //     bitPointer--;
+  //     nibbleVal = nibbleVal >> 1;
+  //   }
+  //   hexPointer--;
+  // }
+  int bitLength = strlen(hex) * 4 + 1;
   char bitstring[bitLength];
-  bitstring[bitLength-1] = '\0';
+  bitstring[bitLength-1] = 0;
   int bitPointer = bitLength - 2;
   int hexPointer = strlen(hex) - 1;
   while (hexPointer >= 0) {
     int nibbleVal;
-    char nibble = hex[hexPointer];
-    if ((nibble > 'f' || nibble < 'a') && !(nibble < '0' || nibble > '9')) {
-      fprintf(stderr, "hex2binary: invalid hex character\n");
+    char nibble = hex[hexPointer--];
+    if (nibble <= 'f' && nibble >= 'a') {         // valid letter
+      nibbleVal = nibble - 'a' + 10;
+    } else if (nibble >= '0' && nibble <= '9') {  // valid number
+      nibbleVal = nibble - '0';
+    } else {
+      perror("hex2binary: invalid hex char\n");
       return;
     }
-    if (nibble >= 'a') {
-      nibbleVal = nibble - 'a' + 10;
-    } else {
-      nibbleVal = nibble - '0';
-    }
-    while (nibbleVal != 0) {
+    for (int i = 0; i < 4; i++) {
       int rem = nibbleVal % 2;
-      bitstring[bitPointer] = rem + '0';
-      bitPointer--;
+      bitstring[bitPointer--] = rem + '0';
       nibbleVal = nibbleVal >> 1;
     }
-    hexPointer--;
   }
   strcpy(binary, bitstring);
 }
@@ -272,7 +306,7 @@ void delete_number (number_t* number) {
 
 void init_numbers(void) {
   _zero_ = new_number(BINARY, "0", 1);
-  _one_ = new_number(BINARY, "1", 1);
+  _one_ = new_number(BINARY, "1", 2);
 }
 
 void free_numbers(void) {
@@ -476,7 +510,9 @@ int numbers_are_equal(number_t* a, number_t* b) {
     return 0;
   }
   if (a->len != b->len) {
-    printf("A and B's length are different");
+#ifdef DEBUG
+    printf("A and B's length are different\n");
+#endif
     return 0;
   }
 

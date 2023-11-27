@@ -120,6 +120,19 @@ void free_numbers(void);
  */
 void dec2binary(unsigned long decimal, char* binary);
 
+/*             hex2binary               */
+/*
+ * Converts hexstring to bitstring
+ * 
+ * params:
+ *    char* hex     := hexstring (not including '0x')
+ *    char* binary  := bitstring
+ * 
+ * returns:
+ *    nothing
+ */
+void hex2binary(const char* hex, char* binary);
+
 /********* TWO's COMPLEMENT****************/
 /*
  *

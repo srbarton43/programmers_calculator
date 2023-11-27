@@ -19,7 +19,7 @@ echo        { return(ECHO_N); }
 \n          { return EOL; }
 [ \t]       { /* ignore whitespace */ }
 [a-zA-Z]    { yylval.s_value = yytext; return VAR; }
-.           { yyerror("unexpected character"); }
+.           { yyerror("unexpected character: %c", yytext[0]); }
 %%
 //[0-9]+      { yylval.s_value = yytext; return DEC; }
 /* .           { yyerror("unexpected character"); } */
