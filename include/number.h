@@ -36,7 +36,7 @@ typedef struct number {
  *
  * example: new_number(BINARY, "1101", 9)
  */
-number_t* new_number(type_e type, char* number, int wordsize);
+number_t* new_number(type_e type, const char* number, int wordsize);
 
 /************** NUMBER_PRINT ****************/
 /* Prints the Number Struct to stdout

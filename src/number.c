@@ -16,7 +16,7 @@ static void refresh_number (number_t* number);
 static void calcLength(number_t* number);
 static void printBits(number_t* num);
 
-number_t* new_number(type_e type, char* number, int wordsize) {
+number_t* new_number(type_e type, const char* number, int wordsize) {
   if (number == NULL) {
     perror("null number string");
     return NULL;
