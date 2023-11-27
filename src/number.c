@@ -8,9 +8,9 @@
 #include "../include/number.h"
 #include "../include/utils.h"
 
-static unsigned long binary2dec(number_t* number);
+static unsigned int binary2dec(number_t* number);
 static char* binary2hex(char* binary);
-static void dec2binary(unsigned long decimal, char* binary);
+// static void dec2binary(unsigned long decimal, char* binary);
 static void hex2binary(char* binary, char* hex);
 static void refresh_number (number_t* number);
 static void calcLength(number_t* number);
@@ -29,6 +29,9 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
   for (int i = 0; i < wordsize; i++) {
     new_num->bits[i] = '0';
   }
+
+  unsigned long decimal;
+
   int slen = strlen(number);
   if (slen == 1 && number[0] == '0') {
     // the number is zero
@@ -41,18 +44,32 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
         else
           new_num->bits[wordsize-i] = '0';
       }
-      int i = wordsize-1;
-      while (i >= 0 ) {
-        if (new_num->bits[i] == '1')
-          new_num->len = wordsize - i;
-        i--;
+      
+      break;
+    case DECIMAL:
+      decimal = atol(number);
+      char bits[65];
+      dec2binary(decimal, bits);
+      slen = strlen(bits);
+      for (int i = 1; i <= wordsize; i++) {
+        if (i <= slen)
+          new_num->bits[wordsize-i] = bits[slen-i];
+        else
+          new_num->bits[wordsize-i] = '0';
       }
       break;
+
     default:
       perror("new_number: not a supported number type");
       free(new_num);
       return NULL;
     }
+  }
+  int i = wordsize-1;
+  while (i >= 0 ) {
+    if (new_num->bits[i] == '1')
+      new_num->len = wordsize - i;
+    i--;
   }
   return new_num;
 }
@@ -68,7 +85,7 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-static unsigned long binary2dec(number_t* num) {
+static unsigned int binary2dec(number_t* num) {
   if (num == NULL) {
     fprintf(stderr, "binary2dec: null number\n");
     return 0;
@@ -141,18 +158,6 @@ static char* binary2hex (char* binary) {
   return hex;
 }
 
-/************* dec2binary **************/
-/*
- * Converts unsigned decimal to bitstring
- *
- * uses divideBy2 algorithm
- *
- * parameters:
- *  decimal => unsigned decimal value
- *  binary => bitstring to return
- * returns:
- *  none
- */
 void dec2binary(unsigned long decimal, char* binary) {
   if (binary == NULL) {
     fprintf(stderr, "dec2binary: bitstring");
@@ -242,6 +247,7 @@ void number_print(number_t* number) {
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
   printf("\n");
+  printf("Unsigned Decimal Value: %d\n", binary2dec(number));
   printf("--------------\n");
 }
 

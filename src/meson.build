@@ -6,7 +6,6 @@ bison = '/opt/homebrew/opt/bison/bin/bison'
 
 parser_prefix = '/'.join(meson.global_build_root(), 'parser')
 parser_src = '.'.join(parser_prefix, 'tab.c')
-parser_header = '.'.join(parser_prefix, 'tab.h')
 run_command(bison, '-b', parser_prefix, '-d', 'parser.y', check : true)
 
 lexer = '/'.join(meson.global_build_root(), 'lexer.c')

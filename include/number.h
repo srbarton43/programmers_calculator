@@ -65,6 +65,20 @@ void number_print(number_t* number);
  */
 void delete_number(number_t* number);
 
+/************* dec2binary **************/
+/*
+ * Converts unsigned decimal to bitstring
+ *
+ * uses divideBy2 algorithm
+ *
+ * parameters:
+ *  decimal => unsigned decimal value
+ *  binary => bitstring to return
+ * returns:
+ *  none
+ */
+void dec2binary(unsigned long decimal, char* binary);
+
 /********* TWO's COMPLEMENT****************/
 /*
  *

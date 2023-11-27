@@ -53,7 +53,12 @@ line: EOL
     ;
 
 statement: QUIT { exit(0); }
-         | ECHO_N number { printf("echoing %s\n", $2); }
+         | ECHO_N number 
+            { 
+              printf("echoing %s\n", $2);
+              number_t* num = ht_get_num($2);
+              number_print(num);
+            }
          | expression { printf("expression\n"); }
          ;
 
@@ -92,7 +97,7 @@ expression: number
             }
           ;
 
-number: DEC { printf("decimal\n"); $$ = $1; }
+number: DEC { printf("decimal\n"); char* key = ht_add_string($1, DECIMAL); $$ = key; }
       | HEX { printf("hex\n"); $$ = $1; }
       | BIN { printf("binary\n"); char* key = ht_add_string($1, BINARY); $$ = key; }
       ;
@@ -133,9 +138,14 @@ char* ht_add_string(const char* number, type_e type) {
   
   // get the binary key associated with the number
   char* key = malloc(100*sizeof(char)); // TODO free this memory later
+  unsigned long decimal;
   switch (type) {
     case BINARY:
       strcpy(key, number);
+      break;
+    case DECIMAL:
+      decimal = atol(number);
+      dec2binary(decimal, key);
       break;
     default: // TODO hex and dec
       printf("error\n");
