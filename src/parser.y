@@ -117,6 +117,18 @@ void yyerror(const char* str, ...)
 }
 
 
+/*
+ * ht_add_string - adds bitstring->number pair to ht
+ * 
+ * params:
+ *    const char* number  := string representing number
+ *    type_e type         := enum type of number 
+ * returns:
+ *    char* key           := bitstring used as key in ht
+ * 
+ * caller must:
+ *    free return val at some point
+ */
 char* ht_add_string(const char* number, type_e type) {
   
   // get the binary key associated with the number
@@ -125,7 +137,7 @@ char* ht_add_string(const char* number, type_e type) {
     case BINARY:
       strcpy(key, number);
       break;
-    default:
+    default: // TODO hex and dec
       printf("error\n");
       yyerror("key is bad");
       return NULL;
@@ -135,7 +147,18 @@ char* ht_add_string(const char* number, type_e type) {
   if (!ret) printf("%s already in ht\n", key);
   return key; 
 }
-  
+ 
+/*
+ * ht_add_number - adds bitstring->number pair to ht
+ * 
+ * params:
+ *    number_t* number  := string representing number
+ * returns:
+ *    char* key         := bitstring used as key in ht
+ * 
+ * caller must:
+ *    free return val at some point
+ */ 
 char* ht_add_number(number_t* number) {
   char* key = malloc(100*sizeof(char)); // TODO free this later
   int i = 0;
@@ -147,6 +170,14 @@ char* ht_add_number(number_t* number) {
   return key;
 }
 
+/*
+ * ht_get_num - gets number from hashtable
+ * 
+ * params:
+ *    const char* number  := bitstring as key
+ * returns:
+ *    number_t* num       := pointer to the number
+ */
 number_t* ht_get_num(const char* number) {
   number_t* num = hashtable_find(ht, number);
   if(!num) {
