@@ -33,12 +33,13 @@
 
 %token <s_value> BIN DEC HEX VAR
 %token <i_value> QUIT ECHO_N EOL
-%token <c_value> ADD SUB
+%type <c_value> '-' '+'
 
 %type <s_value> number expression statement
 
-%left <c_value> '-' '+'
+%left '+' '-'
 %left <i_value> LSHIFT RSHIFT
+%precedence NEG   /* negation--unary minus */
 
 /*  grammar  */
 %%
@@ -97,6 +98,13 @@ expression: number
               printf("lshift\n");
               number_t* num = lshift(ht_get_num($1), ht_get_num($3));
               //printf("result: \n"); number_print(num);
+              char* key = ht_add_number(num);
+              $$ = key;
+            }
+          | '-' expression %prec NEG
+            {
+              printf("negation\n");
+              number_t* num = twos_comp(ht_get_num($2));
               char* key = ht_add_number(num);
               $$ = key;
             }
