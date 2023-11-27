@@ -2,6 +2,8 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <stdarg.h>
+  #include <stdbool.h>
+  #include <string.h>
   
   #include "hashtable.h"
   #include "number.h"
@@ -13,7 +15,9 @@
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
   
-  char* add_number(const char* number, type_e type);
+  char* ht_add_string(const char* number, type_e type);
+  char* ht_add_number(number_t* number);
+  number_t* ht_get_num(const char* number);
 
   #define WORDSIZE 8
   
@@ -57,13 +61,13 @@ statement: QUIT { exit(0); }
 expression: number
           | expression RSHIFT number  { printf("rshift\n"); }
           | expression LSHIFT number  { printf("lshift\n"); }
-          | expression '+' expression { printf("adding\n"); }
-          | expression '-' expression { printf("subtracting\n"); }
+          | expression '+' expression { printf("adding\n"); number_t* num = add(ht_get_num($1), ht_get_num($3)); printf("result: \n"); number_print(num); char* key = ht_add_number(num); $$ = key; }
+          | expression '-' expression { printf("subtracting\n"); number_t* num = sub(ht_get_num($3), ht_get_num($1)); printf("result: \n"); number_print(num); char* key = ht_add_number(num); $$ = key; }
           ;
 
 number: DEC { printf("decimal\n"); $$ = $1; }
       | HEX { printf("hex\n"); $$ = $1; }
-      | BIN { printf("binary\n"); add_number($1, BINARY); $$ = $1; }
+      | BIN { printf("binary\n"); char* key = ht_add_string($1, BINARY); $$ = key; }
       ;
 
 %%
@@ -86,17 +90,40 @@ void yyerror(const char* str, ...)
 }
 
 
-char* add_number(const char* number, type_e type) {
-  char* key;
+char* ht_add_string(const char* number, type_e type) {
+  
+  // get the binary key associated with the number
+  char* key = malloc(100*sizeof(char)); // TODO free this memory later
   switch (type) {
     case BINARY:
-      key = number;
+      strcpy(key, number);
       break;
     default:
       printf("error\n");
-    
+      yyerror("key is bad");
+      return NULL;
   }
-  hashtable_insert(ht, key, new_number(type, number, WORDSIZE));
+  
+  bool ret = hashtable_insert(ht, key, new_number(type, number, WORDSIZE));
+  if (!ret) printf("%s already in ht\n", key);
   return key; 
 }
+  
+char* ht_add_number(number_t* number) {
+  char* key = malloc(100*sizeof(char)); // TODO free this later
+  int i = 0;
+  for(; i < number->len; i++) {
+    key[i] = number->bits[i + number->wordsize - number->len];
+  }
+  key[i] = 0;
+  hashtable_insert(ht, key, number);
+  return key;
+}
 
+number_t* ht_get_num(const char* number) {
+  number_t* num = hashtable_find(ht, number);
+  if(!num) {
+    printf("this shouldnt happen\n");
+  }
+  return num;
+}
