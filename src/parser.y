@@ -102,7 +102,7 @@ expression: number
           | '-' expression %prec NEG
             {
               printf("negation\n");
-              number_t* num = twos_comp(ht_get_num($2));
+              number_t* num = twos_comp(ht_get_num($2), 0);
               char* key = ht_add_number(num);
               $$ = key;
             }

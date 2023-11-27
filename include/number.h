@@ -68,7 +68,25 @@ void number_print(number_t* number);
  */
 void delete_number(number_t* number);
 
-number_t* copy_number(number_t* number);
+/*
+ * copies number param
+ *
+ * params:
+ *    number_t* number  := number to copy
+ *    int wordsize      := wordsize of returned number (same as param if 0)
+ * returns:
+ *    allocated number_t* num where
+ *      num->wordsize = number->wordsize ? wordsize == 0
+ *        else num->wordsize = wordsize
+ *      number->bits = num->bits
+ *      
+ * caller must:
+ *    call delete_number(num)
+ *
+ * we guarantee:
+ *    params aren't modified
+ */
+number_t* copy_number(number_t* number, int wordsize);
 
 int numbers_are_equal(number_t* a, number_t* b);
 
@@ -107,7 +125,7 @@ void dec2binary(unsigned long decimal, char* binary);
  *
  *
  */
-number_t* twos_comp(number_t* num);
+number_t* twos_comp(number_t* num, int wordsize);
 
 /************** ADD ***********************/
 /*
@@ -180,8 +198,9 @@ number_t* rshift (number_t* number, number_t* positions);
 #ifdef UNIT_TEST
 
 int test_twos_comp(char* num, char* expected, int wordsize, char* msg);
-int test_add(char* a, char* b, char* expected, int wordsize, char* msg);
-int test_sub(char* a, char* b, char* expected, int wordsize, char* msg);
+int test_add (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
+int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
+int test_copy_number (char* num, int iws, int ows, char* expected, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 

@@ -271,8 +271,8 @@ void delete_number (number_t* number) {
 }
 
 void init_numbers(void) {
-  _zero_ = new_number(BINARY, "0", WORDSIZE);
-  _one_ = new_number(BINARY, "1", WORDSIZE);
+  _zero_ = new_number(BINARY, "0", 1);
+  _one_ = new_number(BINARY, "1", 1);
 }
 
 void free_numbers(void) {
@@ -307,14 +307,20 @@ static void printBits(number_t* num) {
   }
 }
 
-number_t* copy_number(number_t* number) {
+number_t* copy_number(number_t* number, int wordsize) {
   number_t* new_num = malloc(sizeof(number_t));
-  new_num->wordsize = number->wordsize;
+  if (wordsize == 0)
+    new_num->wordsize = number->wordsize;
+  else
+    new_num->wordsize = wordsize;
   new_num->isSign = number->isSign;
-  new_num->len = number->len;
-  new_num->bits = malloc(sizeof(char)*(number->wordsize+1));
-  for (int i = 0; i < number->wordsize; i++) 
-    new_num->bits[i] = number->bits[i];
+  new_num->len = min(number->len, new_num->wordsize);
+  new_num->bits = malloc(sizeof(char)*(new_num->wordsize+1));
+  for (int i = 1; i <= new_num->wordsize; i++) 
+    if (i <= number-> wordsize)
+      new_num->bits[new_num->wordsize - i] = number->bits[number->wordsize - i];
+    else
+      new_num->bits[new_num->wordsize - i] = '0';
   return new_num;
 }
 
@@ -330,25 +336,28 @@ static void calcLength(number_t* number) {
 /*********** OPERATIONS **********************/
 /*********************************************/
 
-number_t* twos_comp(number_t* num) {
-  number_t* ones = copy_number(num);
+number_t* twos_comp(number_t* num, int wordsize) {
+  number_t* ones;
+  if (wordsize == 0)
+    ones = copy_number(num, 0);
+  else
+    ones = copy_number(num, wordsize);
   
   // flip bits
-  for (int i = 0; i < num->wordsize; i++) {
-    if (num->bits[i] == '1') 
-      ones->bits[i] = '0';
+  for (int i = 1; i <= ones->wordsize; i++) {
+    if (ones->bits[ones->wordsize - i] == '1') 
+      ones->bits[ones->wordsize - i] = '0';
     else
-      ones->bits[i] = '1';
+      ones->bits[ones->wordsize - i] = '1';
   }
+
   
   // add one
-  number_t* one = new_number(BINARY, "1", num->wordsize);
-  
-  number_t* twos = add(one, ones);
+  number_t* twos = add(_one_, ones);
   
   // cleanup
   delete_number(ones);
-  delete_number(one);
+  //delete_number(one);
   
   return twos;
 }
@@ -358,17 +367,26 @@ number_t* add(number_t* a, number_t* b) {
     perror("Can't add a NULL number(s)");
     return NULL;
   }
-  if (a->wordsize != b->wordsize) {
-    perror("Wordsizes are different");
-    return NULL;
-  }
-  number_t* sum = new_number(BINARY, "", a->wordsize);
+#ifdef DEBUG
+  printf("asize: %d; bsize: %d\n", a->wordsize, b->wordsize);
+#endif
+  int ws = max(a->wordsize, b->wordsize);
+  number_t* sum = new_number(BINARY, "", ws);
   char aBit, bBit;
   char carry = '0';
-  int ws = a->wordsize;
   for (int i = 1; i <= ws; i++) {
-    aBit = a->bits[ws-i];
-    bBit = b->bits[ws-i];
+    if (i <= a->wordsize)
+      aBit = a->bits[a->wordsize-i];
+    else
+      aBit = '0';
+    if (i <= b->wordsize)
+      bBit = b->bits[b->wordsize-i];
+    else
+      bBit = '0';
+
+#ifdef DEBUG
+    printf("aBit: %c; bBit: %c; i: %d\n", aBit, bBit, i);
+#endif
     switch (carry+aBit+bBit) {
       case (3*'1'):
         sum->bits[ws-i] = '1';
@@ -396,7 +414,7 @@ number_t* add(number_t* a, number_t* b) {
 }
 
 number_t* sub (number_t* a, number_t* b) {
-  number_t* neg_a = twos_comp(a);
+  number_t* neg_a = twos_comp(a, b->wordsize);
   number_t* sum = add(b, neg_a);
 
   delete_number(neg_a);
@@ -410,7 +428,7 @@ number_t* lshift(number_t* number, number_t* positions) {
     printf("pos must be positive\n");
     return NULL;
   }
-  number_t* new_num = copy_number(number);
+  number_t* new_num = copy_number(number, 0);
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
@@ -430,7 +448,7 @@ number_t* rshift(number_t* number, number_t* positions) {
     printf("pos must be positive\n");
     return NULL;
   }
-  number_t* new_num = copy_number(number);
+  number_t* new_num = copy_number(number, 0);
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
@@ -506,13 +524,13 @@ int test_twos_comp(char* num, char* expected, int wordsize, char* msg) {
   number_t* n = new_number(BINARY, num, wordsize);
   printf("num = "); printBits(n); printf("\n");
    printf("expected two's complement = %s\n", expected);
-  number_t* twos = twos_comp(n);
+  number_t* twos = twos_comp(n, 0);
   printf("actual two's complement = "); printBits(twos); printf("\n");
   int ret = isEqualToBitstring(twos, expected);
   if (!ret)
     printf("Test Passed!\n");
   else
-    printf("Test Passed!\n");
+    printf("Test Failed!\n");
   delete_number(n);
   delete_number(twos);
   return ret;
@@ -562,12 +580,12 @@ int test_rshift (char* num, char* pos, char* expected, int wordsize, char* msg) 
   return ret;
 }
 
-int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
-  printf("_____ ADD a+b (%d-bit Numbers) _____\n", wordsize);
+int test_add (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) {
+  printf("_____ ADD a+b (%d-bit + %d-bit) _____\n", aWs, bWs);
   if (msg != NULL) 
     printf("Objective: %s\n", msg);
-  number_t* a = new_number(BINARY, aS, wordsize);
-  number_t* b = new_number(BINARY, bS, wordsize);
+  number_t* a = new_number(BINARY, aS, aWs);
+  number_t* b = new_number(BINARY, bS, bWs);
   printf("a = "); printBits(a); printf("\n");
   printf("b = "); printBits(b); printf("\n");
   printf("expected a+b = %s\n", expected);
@@ -584,12 +602,31 @@ int test_add (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
   return ret;
 }
 
-int test_sub (char* aS, char* bS, char* expected, int wordsize, char*  msg) {
-  printf("_____ SUB b-a (%d-bit Numbers) _____\n", wordsize);
+int test_copy_number(char* num, int iws, int ows, char* expected, char* msg) {
+  printf("_____ COPY num (%d-bit -> %d-bit) _____\n", iws, ows);
+  if (msg != NULL)
+    printf("Objective: %s\n", msg);
+  number_t* n = new_number(BINARY, num, iws);
+  printf("num = "); printBits(n); printf("\n");
+  printf("expected new_num = %s\n", expected);
+  number_t* new_n = copy_number(n, ows);
+  printf("actual new_num = "); printBits(new_n); printf("\n");
+  int ret = isEqualToBitstring(new_n, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed :(\n");
+  return ret;
+  delete_number(n);
+  delete_number(new_n);
+}
+
+int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) {
+  printf("_____ SUB b-a (%d-bit - %d-bit) _____\n", bWs, aWs);
   if (msg != NULL) 
     printf("Objective: %s\n", msg);
-  number_t* a = new_number(BINARY, aS, wordsize);
-  number_t* b = new_number(BINARY, bS, wordsize);
+  number_t* a = new_number(BINARY, aS, aWs);
+  number_t* b = new_number(BINARY, bS, bWs);
   printf("b = "); printBits(b); printf("\n");
   printf("a = "); printBits(a); printf("\n");
   printf("expected b-a = %s\n", expected);
