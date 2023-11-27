@@ -47,7 +47,12 @@ input: /*nothing*/
      ;
 
 line: EOL
-    | statement EOL { printf("line\n"); }
+    | statement EOL 
+      {
+#ifdef DEBUG
+        printf("line\n");
+#endif
+      }
     | error EOL
     ;
 
@@ -57,14 +62,19 @@ statement: QUIT
             }
          | ECHO_N number 
             { 
+#ifdef DEBUG
               printf("echoing %s\n", $2);
+#endif
               number_t* num = ht_get_num($2);
               number_print(num);
             }
          | expression 
             {
+#ifdef DEBUG
               printf("expression\n");
+#endif
               number_t* num = ht_get_num($1);
+              printf("  =\n");
               number_print(num);
             }
          ;
@@ -72,7 +82,9 @@ statement: QUIT
 expression: number
           | expression '+' expression
             { 
+#ifdef DEBUG
               printf("adding\n");
+#endif
               number_t* num = add(ht_get_num($1), ht_get_num($3));
               //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
@@ -80,23 +92,27 @@ expression: number
             }
           | expression '-' expression 
             { 
+#ifdef DEBUG
               printf("subtracting\n");
+#endif
               number_t* num = sub(ht_get_num($3), ht_get_num($1));
-              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
             }
           | expression RSHIFT number  
             { 
+#ifdef DEBUG
               printf("rshift\n"); 
+#endif
               number_t* num = rshift(ht_get_num($1), ht_get_num($3));
-              //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
             }
           | expression LSHIFT number
             {
+#ifdef DEBUG
               printf("lshift\n");
+#endif
               number_t* num = lshift(ht_get_num($1), ht_get_num($3));
               //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
@@ -104,25 +120,42 @@ expression: number
             }
           | '-' expression %prec NEG
             {
+#ifdef DEBUG
               printf("negation\n");
+#endif
               number_t* num = twos_comp(ht_get_num($2), 0);
               char* key = ht_add_number(num);
               $$ = key;
             }
           ;
 
-number: DEC { printf("decimal\n"); char* key = ht_add_string($1, DECIMAL); $$ = key; }
-      | HEX { printf("hex\n"); char* key = ht_add_string($1, HEXADECIMAL); $$ = key; }
-      | BIN { printf("binary\n"); char* key = ht_add_string($1, BINARY); $$ = key; }
+number: DEC 
+        {
+#ifdef DEBUG
+          printf("decimal\n");
+#endif
+          char* key = ht_add_string($1, DECIMAL);
+          $$ = key;
+        }
+      | HEX
+        {
+#ifdef DEBUG
+          printf("hex\n");
+#endif
+          char* key = ht_add_string($1, HEXADECIMAL);
+          $$ = key;
+        }
+      | BIN
+        {
+#ifdef DEBUG
+          printf("binary\n");
+#endif
+          char* key = ht_add_string($1, BINARY);
+          $$ = key;
+        }
       ;
 
 %%
-
-// int main(int argc, char** argv) {
-//   int ret = yyparse();
-//   yylex_destroy();
-//   return ret;
-// }
 
 void yyerror(const char* str, ...)
   {
@@ -173,13 +206,18 @@ char* ht_add_string(const char* number, type_e type) {
         hex2binary(raw_hex, key);
         printf("hex key: %s\n", key);
         break;
-      default: // TODO hex and dec
+      default:
         printf("error\n");
         yyerror("key is bad");
         return NULL;
     }
-    bool ret = hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
+#ifdef DEBUG
+    bool ret = 
+#endif     
+    hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
+#ifdef DEBUG
     if (!ret) printf("%s already in ht\n", key);
+#endif
   }
   
   return key; 

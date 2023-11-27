@@ -16,7 +16,7 @@ src_files = files('main.c', 'number.c', 'utils.c', parser_src, lexer)
 subdir('hashtable')
 
 unittest_sources = files('number.c', 'utils.c')
-unittest_lib = shared_library('unittest_lib',
+unittest_lib = library('unittest_lib',
                            unittest_sources,
                            include_directories : inc,
                            link_with : hashtable,
