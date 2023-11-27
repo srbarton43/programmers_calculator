@@ -52,6 +52,10 @@ line: EOL
 #ifdef DEBUG
         printf("line\n");
 #endif
+
+        number_t* num = ht_get_num($1);
+        printf("  =\n");
+        number_print(num);
       }
     | error EOL
     ;
@@ -60,22 +64,12 @@ statement: QUIT
             {
               YYACCEPT; // return from yyparse with 0 return code
             }
-         | ECHO_N number 
-            { 
-#ifdef DEBUG
-              printf("echoing %s\n", $2);
-#endif
-              number_t* num = ht_get_num($2);
-              number_print(num);
-            }
          | expression 
             {
 #ifdef DEBUG
               printf("expression\n");
 #endif
-              number_t* num = ht_get_num($1);
-              printf("  =\n");
-              number_print(num);
+              $$ = $1;
             }
          ;
 
