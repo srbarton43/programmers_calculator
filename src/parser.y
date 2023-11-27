@@ -186,7 +186,8 @@ char* ht_add_string(const char* number, type_e type) {
   // get the binary key associated with the number
   char* key = malloc(100*sizeof(char)); // TODO free this memory later
   const char* chopped = number;
-  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++;
+  // chop off leading zeroes and hex signifier
+  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++; 
   if (strlen(chopped) < 1)
     strcpy(key, "0");
   else {
@@ -214,7 +215,8 @@ char* ht_add_string(const char* number, type_e type) {
 #ifdef DEBUG
     bool ret = 
 #endif     
-    hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
+    if(!hashtable_find(ht, key))
+      hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
 #ifdef DEBUG
     if (!ret) printf("%s already in ht\n", key);
 #endif
