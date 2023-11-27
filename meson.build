@@ -11,4 +11,5 @@ subdir('test')
 
 executable( 'pcalc', src_files,
             include_directories : inc,
+            link_with : hashtable,
             link_args : '-ll' )

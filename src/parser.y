@@ -2,9 +2,21 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <stdarg.h>
+  
+  #include "hashtable.h"
+  #include "number.h"
+  #include "utils.h"
+
+  hashtable_t* ht;
+  
   int yylex(void);
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
+  
+  char* add_number(const char* number, type_e type);
+
+  #define WORDSIZE 8
+  
 %}
 
 /* tokens */
@@ -51,7 +63,7 @@ expression: number
 
 number: DEC { printf("decimal\n"); $$ = $1; }
       | HEX { printf("hex\n"); $$ = $1; }
-      | BIN { printf("binary\n"); $$ = $1; }
+      | BIN { printf("binary\n"); add_number($1, BINARY); $$ = $1; }
       ;
 
 %%
@@ -71,5 +83,20 @@ void yyerror(const char* str, ...)
   vfprintf (stderr, str, args);
   fprintf (stderr, "\n");
   va_end (args);
+}
+
+
+char* add_number(const char* number, type_e type) {
+  char* key;
+  switch (type) {
+    case BINARY:
+      key = number;
+      break;
+    default:
+      printf("error\n");
+    
+  }
+  hashtable_insert(ht, key, new_number(type, number, WORDSIZE));
+  return key; 
 }
 

@@ -15,3 +15,5 @@ run_command(flex, '-o', lexer, 'lexer.l', check : true)
 ut_sources = files('number.c', 'utils.c')
 
 src_files = files('main.c', 'number.c', 'utils.c', parser_src, lexer)
+
+subdir('hashtable')
