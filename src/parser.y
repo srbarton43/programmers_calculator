@@ -32,14 +32,13 @@
 }
 
 %token <s_value> BIN DEC HEX VAR
-%token <i_value> LSHIFT RSHIFT
 %token <i_value> QUIT ECHO_N EOL
 %token <c_value> ADD SUB
 
-%type <c_value> '+' '-'
 %type <s_value> number expression statement
 
-%left '-' '+' RSHIFT LSHIFT
+%left <c_value> '-' '+'
+%left <i_value> LSHIFT RSHIFT
 
 /*  grammar  */
 %%
@@ -59,10 +58,38 @@ statement: QUIT { exit(0); }
          ;
 
 expression: number
-          | expression RSHIFT number  { printf("rshift\n"); }
-          | expression LSHIFT number  { printf("lshift\n"); }
-          | expression '+' expression { printf("adding\n"); number_t* num = add(ht_get_num($1), ht_get_num($3)); printf("result: \n"); number_print(num); char* key = ht_add_number(num); $$ = key; }
-          | expression '-' expression { printf("subtracting\n"); number_t* num = sub(ht_get_num($3), ht_get_num($1)); printf("result: \n"); number_print(num); char* key = ht_add_number(num); $$ = key; }
+          | expression '+' expression
+            { 
+              printf("adding\n");
+              number_t* num = add(ht_get_num($1), ht_get_num($3));
+              printf("result: \n"); number_print(num);
+              char* key = ht_add_number(num);
+              $$ = key;                                     
+            }
+          | expression '-' expression 
+            { 
+              printf("subtracting\n");
+              number_t* num = sub(ht_get_num($3), ht_get_num($1));
+              printf("result: \n"); number_print(num);
+              char* key = ht_add_number(num);
+              $$ = key;
+            }
+          | expression RSHIFT number  
+            { 
+              printf("rshift\n"); 
+              number_t* num = rshift(ht_get_num($1), ht_get_num($3));
+              printf("result: \n"); number_print(num);
+              char* key = ht_add_number(num);
+              $$ = key;
+            }
+          | expression LSHIFT number
+            {
+              printf("lshift\n");
+              number_t* num = lshift(ht_get_num($1), ht_get_num($3));
+              printf("result: \n"); number_print(num);
+              char* key = ht_add_number(num);
+              $$ = key;
+            }
           ;
 
 number: DEC { printf("decimal\n"); $$ = $1; }
