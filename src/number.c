@@ -60,7 +60,9 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
       {
         char bits[65];
         hex2binary(number, bits);
+#ifdef DEBUG
         printf("hex number: %s\n", bits);
+#endif
         slen = strlen(bits);
         for (int i = 1; i <= wordsize; i++) {
           if (i <= slen)
@@ -330,7 +332,7 @@ static void calcLength(number_t* number) {
 /*********** OPERATIONS **********************/
 /*********************************************/
 
-number_t* twos_comp(number_t* num, int wordsize) {
+number_t* ones_comp(number_t* num, int wordsize) {
   number_t* ones;
   if (wordsize == 0)
     ones = copy_number(num, 0);
@@ -344,6 +346,13 @@ number_t* twos_comp(number_t* num, int wordsize) {
     else
       ones->bits[ones->wordsize - i] = '1';
   }
+  calcLength(ones);
+  return ones;
+}
+number_t* twos_comp(number_t* num, int wordsize) {
+  number_t* ones;
+
+  ones = ones_comp(num, wordsize);
 
   
   // add one
@@ -351,7 +360,6 @@ number_t* twos_comp(number_t* num, int wordsize) {
   
   // cleanup
   delete_number(ones);
-  //delete_number(one);
   
   return twos;
 }

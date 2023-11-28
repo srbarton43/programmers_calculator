@@ -176,10 +176,31 @@ void dec2binary(unsigned long decimal, char* binary);
  */
 void hex2binary(const char* hex, char* binary);
 
+/********* ONE's COMPLEMENT****************/
+/*
+ * returns one's complement of num (bitwise not)
+ *
+ * params:
+ *    number_t* num := valid pointer to number
+ *    int wordsize  := wordsize for return number
+ *
+ * returns:
+ *    number_t* number where...
+ *      number->wordsize = wordsize
+ */
+number_t* ones_comp(number_t* num, int wordsize);
+
 /********* TWO's COMPLEMENT****************/
 /*
+ * returns two's complement of num (integer negation)
  *
+ * params:
+ *    number_t* num := valid pointer to number
+ *    int wordsize  := wordsize for return number
  *
+ * returns:
+ *    number_t* number where...
+ *      number->wordsize = wordsize
  */
 number_t* twos_comp(number_t* num, int wordsize);
 

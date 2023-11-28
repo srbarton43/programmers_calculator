@@ -31,13 +31,13 @@
 
 %token <s_value> BIN DEC HEX VAR
 %token <i_value> QUIT W_SIZE EOL
-%type <c_value> '-' '+'
+%type <c_value> '-' '+' '~'
 
 %type <s_value> number expression statement
 
 %left '+' '-'
 %left <i_value> LSHIFT RSHIFT
-%precedence NEG   /* negation--unary minus */
+%precedence NEG '~'   /* negation--unary minus and bitwise NOT */
 
 /*  grammar  */
 %%
@@ -71,8 +71,12 @@ statement: QUIT
          | W_SIZE number
             {
               int new_wsize = binary2sdec(ht_get_num($2));
-              printf("changed wordsize to %d\n", new_wsize);
-              prog_data->wordsize = new_wsize;
+              if (new_wsize < 4 || new_wsize > 64) {
+                printf("unsupported wordsize: %d\n", new_wsize);
+              } else {
+                printf("changed wordsize to %d\n", new_wsize);
+                prog_data->wordsize = new_wsize;
+              }
               $$ = "foo";
             }
          | expression 
@@ -131,6 +135,19 @@ expression: number
               number_t* num = twos_comp(ht_get_num($2), 0);
               char* key = ht_add_number(num);
               $$ = key;
+            }
+          | '~' expression
+            {
+#ifdef DEBUG
+              printf("bitwise NOT\n");
+#endif
+              number_t* num = ones_comp(ht_get_num($2), 0);
+              char* key = ht_add_number(num);
+              $$ = key;
+            }
+          | '(' expression ')'
+            {
+              $$ = $2;
             }
           ;
 
