@@ -5,13 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../include/number.h"
-#include "../include/utils.h"
+#include "number.h"
+#include "utils.h"
 
 number_t* _zero_;
 number_t* _one_;
 
-static unsigned int binary2udec(number_t* number);
 static void calcLength(number_t* number);
 static void printBits(number_t* num);
 
@@ -86,6 +85,22 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
   return new_num;
 }
 
+void change_wordsize(number_t* num, int wordsize) {
+  int old_ws = num->wordsize;
+  char* old_bits = num->bits;
+  char* bits = malloc(wordsize * sizeof(char));
+  for (int i = 1; i <= wordsize; i++) {
+    if (old_ws - i >= 0)
+      bits[wordsize - i] = old_bits[old_ws - i];
+    else
+      bits[wordsize - i] = '0';
+  }
+  free(old_bits);
+  num->bits = bits;
+  num->wordsize = wordsize;
+  calcLength(num);
+}
+
 /********* binary2udec *************/
 /* calculates the unsigned decimal for bitstring
  *
@@ -97,7 +112,7 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-static unsigned int binary2udec(number_t* num) {
+unsigned int binary2udec(number_t* num) {
   if (num == NULL) {
     fprintf(stderr, "binary2udec: null number\n");
     return 0;
@@ -127,7 +142,7 @@ static unsigned int binary2udec(number_t* num) {
  * We Assume:
  *  binary contains only 1's and 0's
  */
-static unsigned int binary2sdec(number_t* num) {
+signed int binary2sdec(number_t* num) {
   if (num == NULL) {
     fprintf(stderr, "binary2sdec: null number\n");
     return 0;
@@ -271,7 +286,7 @@ void number_print(number_t* number) {
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
   printf("\n");
-  printf("Unsigned Decimal Value: %d\n", binary2udec(number));
+  printf("Unsigned Decimal Value: %u\n", binary2udec(number));
   printf("Signed Decimal Value: %d\n", binary2sdec(number));
   printf("--------------\n");
 }
@@ -293,7 +308,6 @@ number_t* copy_number(number_t* number, int wordsize) {
     new_num->wordsize = number->wordsize;
   else
     new_num->wordsize = wordsize;
-  new_num->isSign = number->isSign;
   new_num->len = min(number->len, new_num->wordsize);
   new_num->bits = malloc(sizeof(char)*(new_num->wordsize+1));
   for (int i = 1; i <= new_num->wordsize; i++) 

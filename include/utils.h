@@ -6,13 +6,30 @@
 
 #include "hashtable.h"
 
-#define WORDSIZE 8
-#define HT_SIZE 11
+#define HT_SIZE 103  // the default hashtable size
+#define DEFAULT_WS 8 // the wordsize when pcalc starts
 
+typedef struct program_data {
+  hashtable_t* nums;
+  int wordsize;
+} program_data_t;
+
+// program data struct ... holds all program state
+program_data_t* prog_data;
+
+// return max(a,b)
 int max(int a, int b);
 
+// return min(a,b)
 int min(int a, int b);
 
-hashtable_t* setup_ht();
+// initializes program data values
+program_data_t* init_program_data(void);
+
+// prints program data for debugging
+void print_program_data(program_data_t* prog_data);
+
+// frees program data struct
+void free_program_data(program_data_t* prog_data);
 
 #endif

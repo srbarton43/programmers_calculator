@@ -9,7 +9,7 @@
 
 %%
 quit        { return(QUIT); }
-echo        { return(ECHO_N); }
+wordsize    { return(W_SIZE); }
 ">>"        { return(RSHIFT); }
 "<<"        { return(LSHIFT); }
 "+"|"-"     { yylval.c_value = yytext[0]; return (int)yytext[0]; }
@@ -21,16 +21,3 @@ echo        { return(ECHO_N); }
 [a-zA-Z]    { yylval.s_value = yytext; return VAR; }
 .           { yyerror("unexpected character: %c", yytext[0]); }
 %%
-//[0-9]+      { yylval.s_value = yytext; return DEC; }
-/* .           { yyerror("unexpected character"); } */
-// .           {
-//               yylval.c_value = yytext[0];
-//               if (yytext[0] < ' ')
-//                 yyerror ("illegal character: ^%c",yytext[0] + '@');
-//               else
-//                 if (yytext[0] > '~')
-//                   yyerror ("illegal character: \\%03o", (int) yytext[0]);
-//                 else
-//                   yyerror ("illegal character: %s",yytext);
-//             }
-// 

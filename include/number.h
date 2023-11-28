@@ -2,15 +2,11 @@
 #ifndef __NUMBER_H
 #define __NUMBER_H
 
-#include <stdio.h>
-#include <stdbool.h>
-
 typedef enum {BINARY, DECIMAL, HEXADECIMAL} type_e;
 
 typedef struct number {
   int wordsize;   // max wordsize for the bitstring
   int len;        // actual length of bitstring
-  bool isSign;    // is it signed binary?
   char* bits;     // non null-terminated bitstring
 } number_t;      
 
@@ -40,6 +36,24 @@ extern number_t* _one_;
  * example: new_number(BINARY, "1101", 9)
  */
 number_t* new_number(type_e type, const char* number, int wordsize);
+
+/********       CHANGE_WORDSIZE      ********/
+/*
+ * changes wordsize of number to new wordsize
+ * 
+ * params:
+ *    number_t* num := number you want to change wordsize
+ *    int wordsize  := new wordsize
+ * 
+ * returns:
+ *    nothing
+ * 
+ * we guarantee:
+ *    num->wordsize = wordsize
+ *    num->bits is left-padded with '0's if new wordsize is bigger
+ *              and most-sig bits chopped off if wordsize is smaller
+ */
+void change_wordsize(number_t* num, int wordsize);
 
 /************** NUMBER_PRINT ****************/
 /* Prints the Number Struct to stdout
@@ -96,12 +110,41 @@ int numbers_are_equal(number_t* a, number_t* b);
  */
 void init_numbers(void);
 
-/**********     INIT_NUMBERS     ********/
+/**********     FREE_NUMBERS     ********/
 /*
  * Frees special numbers
  */
 void free_numbers(void);
 
+/**********     binary2udec       *******/
+/*
+ * returns unsigned integer rep for number
+ *
+ * params:
+ *    number_t* number  := number
+ * 
+ * returns:
+ *    unsigned int := unsigned integer rep for param number
+ * 
+ * we guarantee:
+ *    number is unchanged
+ */
+unsigned int binary2udec(number_t* number);
+
+/**********     binary2sdec       *******/
+/*
+ * returns signed integer rep for number
+ *
+ * params:
+ *    number_t* number  := number
+ * 
+ * returns:
+ *    signed int := signed integer rep for param number
+ * 
+ * we guarantee:
+ *    number is unchanged
+ */
+signed int binary2sdec(number_t* number);
 /////////////////////////////////////////
 //           OPERATORS                 //
 /////////////////////////////////////////

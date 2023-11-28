@@ -9,7 +9,7 @@
   #include "number.h"
   #include "utils.h"
 
-  hashtable_t* ht;
+  extern program_data_t* prog_data;
   
   int yylex(void);
   int yylex_destroy(void);
@@ -30,7 +30,7 @@
 }
 
 %token <s_value> BIN DEC HEX VAR
-%token <i_value> QUIT ECHO_N EOL
+%token <i_value> QUIT W_SIZE EOL
 %type <c_value> '-' '+'
 
 %type <s_value> number expression statement
@@ -43,7 +43,7 @@
 %%
 
 input: /*nothing*/
-     | input line
+     | input line { printf(">>> "); }
      ;
 
 line: EOL
@@ -53,9 +53,13 @@ line: EOL
         printf("line\n");
 #endif
 
-        number_t* num = ht_get_num($1);
-        printf("  =\n");
-        number_print(num);
+        if (strcmp("foo", $1) == 0) {
+          // wsize change
+        } else {
+          number_t* num = ht_get_num($1);
+          printf("  =\n");
+          number_print(num);
+        }
       }
     | error EOL
     ;
@@ -63,6 +67,13 @@ line: EOL
 statement: QUIT
             {
               YYACCEPT; // return from yyparse with 0 return code
+            }
+         | W_SIZE number
+            {
+              int new_wsize = binary2sdec(ht_get_num($2));
+              printf("changed wordsize to %d\n", new_wsize);
+              prog_data->wordsize = new_wsize;
+              $$ = "foo";
             }
          | expression 
             {
@@ -197,22 +208,31 @@ char* ht_add_string(const char* number, type_e type) {
         break;
       case HEXADECIMAL:
         strcpy(raw_hex, chopped);
-        printf("raw_hex: %s\n", raw_hex);
         hex2binary(raw_hex, key);
+#ifdef DEBUG
+        printf("raw_hex: %s\n", raw_hex);
         printf("hex key: %s\n", key);
+#endif  
         break;
       default:
         printf("error\n");
         yyerror("key is bad");
         return NULL;
     }
+    number_t* num = NULL;
 #ifdef DEBUG
-    bool ret = 
 #endif     
-    if(!hashtable_find(ht, key))
-      hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
+    if((num = hashtable_find(prog_data->nums, key)) == NULL)
+      hashtable_insert(prog_data->nums, key, new_number(type, chopped, prog_data->wordsize));
+    else if (prog_data->wordsize != num->wordsize) {
+      // change num wordsize
 #ifdef DEBUG
-    if (!ret) printf("%s already in ht\n", key);
+      printf("changing wordsize from %d to %d\n", num->wordsize, prog_data->wordsize);
+#endif
+      change_wordsize(num, prog_data->wordsize);
+    }
+#ifdef DEBUG
+    else printf("%s already in ht and wordsize is same\n", key);
 #endif
   }
   
@@ -241,7 +261,7 @@ char* ht_add_number(number_t* number) {
     key[i] = number->bits[i + number->wordsize - number->len];
   }
   key[i] = 0;
-  hashtable_insert(ht, key, number);
+  hashtable_insert(prog_data->nums, key, number);
   return key;
 }
 
@@ -254,7 +274,7 @@ char* ht_add_number(number_t* number) {
  *    number_t* num       := pointer to the number
  */
 number_t* ht_get_num(const char* number) {
-  number_t* num = hashtable_find(ht, number);
+  number_t* num = hashtable_find(prog_data->nums, number);
   if(!num) {
     printf("this shouldnt happen\n");
   }
