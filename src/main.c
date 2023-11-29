@@ -10,7 +10,7 @@ void yylex_destroy(void);
 
 //extern hashtable_t* ht;
 //extern int global_wordsize;
-extern program_data_t* prog_data;
+program_data_t* prog_data;
 
 int main() {
   init_numbers();

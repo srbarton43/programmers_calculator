@@ -21,18 +21,18 @@ int min (int a, int b) {
 }
 
 program_data_t* init_program_data(void) {
-  program_data_t* prog_data = malloc(sizeof(program_data_t));
+  program_data_t* p_data = malloc(sizeof(program_data_t));
 
-  prog_data->nums = setup_ht();
-  prog_data->wordsize = DEFAULT_WS;
+  p_data->nums = setup_ht();
+  p_data->wordsize = DEFAULT_WS;
 
-  return prog_data;
+  return p_data;
 }
 
-void print_program_data(program_data_t* prog_data) {
+void print_program_data(program_data_t* p_data) {
   printf("\n***********************\n"); printf("Numbers Table\n");
-  hashtable_print(prog_data->nums, stdout, item_print);
-  printf("wordsize: %d\n", prog_data->wordsize);
+  hashtable_print(p_data->nums, stdout, item_print);
+  printf("wordsize: %d\n", p_data->wordsize);
 }
 
 void free_program_data(program_data_t* prog_data) {

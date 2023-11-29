@@ -15,7 +15,7 @@ typedef struct program_data {
 } program_data_t;
 
 // program data struct ... holds all program state
-program_data_t* prog_data;
+extern program_data_t* prog_data;
 
 // return max(a,b)
 int max(int a, int b);

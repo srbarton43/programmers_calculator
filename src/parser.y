@@ -9,8 +9,6 @@
   #include "number.h"
   #include "utils.h"
 
-  extern program_data_t* prog_data;
-  
   int yylex(void);
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
@@ -59,6 +57,7 @@ line: EOL
           number_t* num = ht_get_num($1);
           printf("  =\n");
           number_print(num);
+          free($1);
         }
       }
     | error EOL
@@ -95,7 +94,7 @@ expression: number
               printf("adding\n");
 #endif
               number_t* num = add(ht_get_num($1), ht_get_num($3));
-              //printf("result: \n"); number_print(num);
+              free($1); free($3);
               char* key = ht_add_number(num);
               $$ = key;                                     
             }
@@ -105,6 +104,7 @@ expression: number
               printf("subtracting\n");
 #endif
               number_t* num = sub(ht_get_num($3), ht_get_num($1));
+              free($3); free($1);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -114,6 +114,7 @@ expression: number
               printf("rshift\n"); 
 #endif
               number_t* num = rshift(ht_get_num($1), ht_get_num($3));
+              free($1); free($3);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -123,6 +124,7 @@ expression: number
               printf("lshift\n");
 #endif
               number_t* num = lshift(ht_get_num($1), ht_get_num($3));
+              free($1); free($3);
               //printf("result: \n"); number_print(num);
               char* key = ht_add_number(num);
               $$ = key;
@@ -133,6 +135,7 @@ expression: number
               printf("negation\n");
 #endif
               number_t* num = twos_comp(ht_get_num($2), 0);
+              free($2);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -142,6 +145,7 @@ expression: number
               printf("bitwise NOT\n");
 #endif
               number_t* num = ones_comp(ht_get_num($2), 0);
+              free($2);
               char* key = ht_add_number(num);
               $$ = key;
             }
@@ -206,7 +210,7 @@ void yyerror(const char* str, ...)
 char* ht_add_string(const char* number, type_e type) {
   
   // get the binary key associated with the number
-  char* key = malloc(100*sizeof(char)); // TODO free this memory later
+  char* key = malloc(100*sizeof(char));
   const char* chopped = number;
   // chop off leading zeroes and hex signifier
   while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++; 
@@ -268,7 +272,7 @@ char* ht_add_string(const char* number, type_e type) {
  *    free return val at some point
  */ 
 char* ht_add_number(number_t* number) {
-  char* key = malloc(100*sizeof(char)); // TODO free this later
+  char* key = malloc(100*sizeof(char));
   if (numbers_are_equal(number, _zero_)) {
     strcpy(key, "0");
     return key;
