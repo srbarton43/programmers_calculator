@@ -12,12 +12,12 @@ quit        { return(QUIT); }
 wordsize    { return(W_SIZE); }
 ">>"        { return(RSHIFT); }
 "<<"        { return(LSHIFT); }
-"+"|"-"|"~"|"("|")"     { yylval.c_value = yytext[0]; return (int)yytext[0]; }
+"+"|"-"|"~"|"("|")"|"="     { yylval.c_value = yytext[0]; return (int)yytext[0]; }
 [10]+      { yylval.s_value = yytext; return BIN; }
 [1-9][0-9]* { yylval.s_value = yytext; return DEC; }
 0x[0-9a-f]+ { yylval.s_value = yytext; return HEX; }
 \n          { return EOL; }
 [ \t]       { /* ignore whitespace */ }
-[a-zA-Z]    { yylval.s_value = yytext; return VAR; }
+[a-z]       { yylval.c_value = yytext[0]; return VAR; }
 .           { yyerror("unexpected character: %c", yytext[0]); yylval.c_value = yytext[0]; return (int)yytext[0]; }
 %%

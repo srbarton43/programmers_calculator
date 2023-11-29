@@ -279,15 +279,19 @@ void free_numbers(void) {
 
 void number_print(number_t* number) {
   printf("--------------\n");
+#ifdef DEBUG
   printf("NUMBER %p\n", number);
+#endif
   printf("WORDSIZE %d\n", number->wordsize);
   printf("LENGTH %d\n", number->len);
-  char* bs = number->bits;
   printf("BITSTRING "); printBits(number); printf("\n");
+#ifdef DEBUG
+  char* bs = number->bits;
   printf("RAW ");
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
   printf("\n");
+#endif
   printf("Unsigned Decimal Value: %u\n", binary2udec(number));
   printf("Signed Decimal Value: %d\n", binary2sdec(number));
   printf("--------------\n");

@@ -27,9 +27,6 @@ program_data_t* init_program_data(void) {
   p_data->nums = setup_ht();
   for (int i = 0; i < VAR_NUM; i++)
     p_data->vars[i] = 0;
-  char* s1 = malloc(10*sizeof(char));
-  strcpy(s1, "1101");
-  p_data->vars[3] = s1;
   p_data->wordsize = DEFAULT_WS;
 
   return p_data;
@@ -58,7 +55,7 @@ void free_program_data(program_data_t* p_data) {
 }
 
 static hashtable_t* setup_ht() {
-  hashtable_t* ht = hashtable_new(HT_SIZE);
+  hashtable_t* ht = hashtable_new(nums_SIZE);
   hashtable_insert(ht, "0", copy_number(_zero_, 0));
   return ht;
 }
@@ -70,4 +67,107 @@ static void item_delete(void* item) {
 static void item_print(FILE* fp, const char* key, void* item) {
   fprintf(fp, "key: %s\n", key);
   number_print((number_t*)item);
+}
+
+/*            nums_add_string           */ 
+char* nums_add_string(program_data_t* prog_data, const char* number, type_e type) {
+  
+  // get the binary key associated with the number
+  char* key = malloc(100*sizeof(char));
+  const char* chopped = number;
+  // chop off leading zeroes and hex signifier
+  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++; 
+  if (strlen(chopped) < 1)
+    strcpy(key, "0");
+  else {
+    unsigned long decimal;
+    char raw_hex[100];
+    switch (type) {
+      case BINARY:
+        strcpy(key, chopped);
+        break;
+      case DECIMAL:
+        decimal = atol(chopped);
+        dec2binary(decimal, key);
+        break;
+      case HEXADECIMAL:
+        strcpy(raw_hex, chopped);
+        hex2binary(raw_hex, key);
+#ifdef DEBUG
+        printf("raw_hex: %s\n", raw_hex);
+        printf("hex key: %s\n", key);
+#endif  
+        break;
+      default:
+        printf("error: invalid number type in add_string\n");
+        return NULL;
+    }
+    number_t* num = NULL;
+#ifdef DEBUG
+#endif     
+    if((num = hashtable_find(prog_data->nums, key)) == NULL)
+      hashtable_insert(prog_data->nums, key, new_number(type, chopped, prog_data->wordsize));
+    else if (prog_data->wordsize != num->wordsize) {
+      // change num wordsize
+#ifdef DEBUG
+      printf("changing wordsize from %d to %d\n", num->wordsize, prog_data->wordsize);
+#endif
+      change_wordsize(num, prog_data->wordsize);
+    }
+#ifdef DEBUG
+    else printf("%s already in ht and wordsize is same\n", key);
+#endif
+  }
+  
+  return key; 
+}
+ 
+/*            nums_add_number           */  
+char* nums_add_number(program_data_t* prog_data, number_t* number) {
+  char* key = malloc(100*sizeof(char));
+  if (numbers_are_equal(number, _zero_)) {
+    strcpy(key, "0");
+    return key;
+  }
+  int i = 0;
+  for(; i < number->len; i++) {
+    key[i] = number->bits[i + number->wordsize - number->len];
+  }
+  key[i] = 0;
+  hashtable_insert(prog_data->nums, key, number);
+  return key;
+}
+
+/*            nums_get_num             */
+number_t* nums_get_num(program_data_t* prog_data, const char* number) {
+  number_t* num = hashtable_find(prog_data->nums, number);
+  if(!num) {
+    printf("this shouldnt happen\n");
+  }
+  return num;
+}
+
+
+/*            vars_get_val            */ 
+char* vars_get_val(program_data_t* prog_data, char var) {
+  char* key;
+  int idx = var - 'a';
+  char* val = prog_data->vars[idx];
+  if(val) {
+    key = malloc((strlen(val)+1) * sizeof(char));
+    strcpy(key, val);
+  } else {
+    key = malloc(2*sizeof(char));
+    strcpy(key, "0");
+  }
+  return key;
+}
+
+/*            vars_set_val            */
+void vars_set_val(program_data_t* prog_data, char var, char* val) {
+  int idx = var - 'a';
+  if(prog_data->vars[idx])
+    free(prog_data->vars[idx]);
+  prog_data->vars[idx] = malloc((strlen(val)+1)*sizeof(char));
+  strcpy(prog_data->vars[idx], val);
 }
