@@ -8,10 +8,12 @@
 
 #define HT_SIZE 103  // the default hashtable size
 #define DEFAULT_WS 8 // the wordsize when pcalc starts
+#define VAR_NUM 26   // the number of vars (26 for each lcase char in alphabet)
 
 typedef struct program_data {
   hashtable_t* nums;
   int wordsize;
+  char* vars[VAR_NUM];
 } program_data_t;
 
 // program data struct ... holds all program state
