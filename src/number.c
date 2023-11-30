@@ -477,6 +477,30 @@ number_t* rshift(number_t* number, number_t* positions) {
   return new_num;
 }
 
+/*           and             */
+number_t* and(number_t* a, number_t* b) {
+  int ws = max(a->wordsize, b->wordsize);
+  number_t* num = copy_number(_zero_, ws);
+  int aWs = a->wordsize; int bWs = b->wordsize;
+  for(int i = 1; i <= ws; i++) {
+    num->bits[ws-i] = (a->bits[aWs-i] == '1' && b->bits[bWs-i] == '1') + '0';
+  }
+  calcLength(num);
+  return num;
+}
+
+/*             or              */
+number_t* or(number_t* a, number_t* b) {
+  int ws = max(a->wordsize, b->wordsize);
+  number_t* num = copy_number(_zero_, ws);
+  int aWs = a->wordsize; int bWs = b->wordsize;
+  for(int i = 1; i <= ws; i++) {
+    num->bits[ws-i] = (a->bits[aWs-i] == '1' || b->bits[bWs-i] == '1') + '0';
+  }
+  calcLength(num);
+  return num;
+}
+
 int numbers_are_equal(number_t* a, number_t* b) {
   if (!a || !b) {
     perror("One of the numbers is NULL");
@@ -651,4 +675,50 @@ int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) 
   delete_number(sum);
   return ret;
 }
+
+int test_and(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
+  printf("_____ AND a&b (%d-bit - %d-bit) _____\n", aWs, bWs);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* a = new_number(BINARY, aS, aWs);
+  number_t* b = new_number(BINARY, bS, bWs);
+  printf("b = "); printBits(b); printf("\n");
+  printf("a = "); printBits(a); printf("\n");
+  printf("expected a&b = %s\n", expected);
+  number_t* anded = and(a, b);
+  number_print(anded);
+  printf("actual a&b = "); printBits(anded); printf("\n");
+  int ret = isEqualToBitstring(anded, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  delete_number(a);
+  delete_number(b);
+  delete_number(anded);
+  return ret; 
+}
+int test_or(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
+  printf("_____ OR a|b (%d-bit | %d-bit) _____\n", aWs, bWs);
+  if (msg != NULL) 
+    printf("Objective: %s\n", msg);
+  number_t* a = new_number(BINARY, aS, aWs);
+  number_t* b = new_number(BINARY, bS, bWs);
+  printf("a = "); printBits(a); printf("\n");
+  printf("b = "); printBits(b); printf("\n");
+  printf("expected a|b = %s\n", expected);
+  number_t* ored = or(a, b);
+  printf("actual a|b = "); printBits(ored); printf("\n");
+  int ret = isEqualToBitstring(ored, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  delete_number(a);
+  delete_number(b);
+  delete_number(ored);
+  return ret;
+  
+}
+
 #endif

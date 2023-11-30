@@ -286,6 +286,16 @@ number_t* lshift (number_t* number, number_t* positions);
  */
 number_t* rshift (number_t* number, number_t* positions);
 
+/*
+ *
+ */
+number_t* and(number_t* a, number_t* b);
+
+/*
+ *
+ */
+number_t* or(number_t* a, number_t* b);
+
 
 #ifdef UNIT_TEST
 
@@ -295,6 +305,8 @@ int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
 int test_copy_number (char* num, int iws, int ows, char* expected, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
+int test_and(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
+int test_or(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
 
 #endif
 
