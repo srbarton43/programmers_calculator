@@ -174,6 +174,11 @@ signed long long number_getSdec(number_t* num) {
 }
 
 char* number_getHex(number_t* number) {
+  if(numbers_are_equal(_zero_, number)) {
+    char* hex = malloc(sizeof("0x0\0"));
+    strcpy(hex, "0x0");
+    return hex;
+  }
   int hLen;
   int nLen = number->len;
   if(nLen % 4 == 0) 

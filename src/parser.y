@@ -27,12 +27,14 @@
 %token <s_value> BIN DEC HEX
 %token <i_value> QUIT W_SIZE EOL
 %token <c_value> VAR
-%type <c_value> '-' '+' '~' '='
+%type <c_value> '-' '+' '~' '=' '&' '|'
 
 %type <s_value> number expression statement
 
-%left '+' '-'
+%left '|'
+%left '&'
 %left <i_value> LSHIFT RSHIFT
+%left '+' '-'
 %precedence NEG '~'   /* negation--unary minus and bitwise NOT */
 
 /*  grammar  */
@@ -139,6 +141,26 @@ expression: number
               number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
               free($1); free($3);
               //printf("result: \n"); number_print(num);
+              char* key = nums_add_number(prog_data, num);
+              $$ = key;
+            }
+          | expression '&' expression
+            {
+#ifdef DEBUG
+              printf("and\n");
+#endif
+              number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              free($1); free($3);
+              char* key = nums_add_number(prog_data, num);
+              $$ = key;
+            }
+          | expression '|' expression
+            {
+#ifdef DEBUG
+              printf("or\n");
+#endif
+              number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              free($1); free($3);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
             }
