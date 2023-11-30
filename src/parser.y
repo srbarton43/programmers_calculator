@@ -69,11 +69,11 @@ statement: QUIT
             }
          | W_SIZE number
             {
-              int new_wsize = binary2sdec(nums_get_num(prog_data, $2));
+              long long new_wsize = number_getSdec(nums_get_num(prog_data, $2));
               if (new_wsize < 4 || new_wsize > 64) {
-                printf("unsupported wordsize: %d\n", new_wsize);
+                printf("unsupported wordsize: %lld\n", new_wsize);
               } else {
-                printf("changed wordsize to %d\n", new_wsize);
+                printf("changed wordsize to %lld\n", new_wsize);
                 prog_data->wordsize = new_wsize;
               }
               $$ = "foo";

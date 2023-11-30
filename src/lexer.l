@@ -9,7 +9,7 @@
 
 %%
 quit        { return(QUIT); }
-wordsize    { return(W_SIZE); }
+ws          { return(W_SIZE); }
 ">>"        { return(RSHIFT); }
 "<<"        { return(LSHIFT); }
 "+"|"-"|"~"|"("|")"|"="     { yylval.c_value = yytext[0]; return (int)yytext[0]; }

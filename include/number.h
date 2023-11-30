@@ -116,7 +116,7 @@ void init_numbers(void);
  */
 void free_numbers(void);
 
-/**********     binary2udec       *******/
+/**********     number_getUdec       *******/
 /*
  * returns unsigned integer rep for number
  *
@@ -129,9 +129,9 @@ void free_numbers(void);
  * we guarantee:
  *    number is unchanged
  */
-unsigned int binary2udec(number_t* number);
+unsigned long long number_getUdec(number_t* number);
 
-/**********     binary2sdec       *******/
+/**********     number_getSdec       *******/
 /*
  * returns signed integer rep for number
  *

@@ -35,25 +35,31 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
     char bits[65];
     switch (type) {
       case BINARY:
-        for (int i = 1; i <= wordsize; i++) {
+      {
+        int i;
+        for (i = 1; i <= wordsize; i++) {
           if (i <= slen)
             new_num->bits[wordsize-i] = number[slen-i];
           else
             new_num->bits[wordsize-i] = '0';
         }
+        if (i <= slen) printf("binary bigger than wordsize\n");
         
         break;
+      }
       case DECIMAL:
       {
         unsigned long decimal = atol(number);
         dec2binary(decimal, bits);
         slen = strlen(bits);
-        for (int i = 1; i <= wordsize; i++) {
+        int i;
+        for (i = 1; i <= wordsize; i++) {
           if (i <= slen)
             new_num->bits[wordsize-i] = bits[slen-i];
           else
             new_num->bits[wordsize-i] = '0';
         }
+        if (i <= slen) printf("decimal too big\n");
         break;
       }
       case HEXADECIMAL:
@@ -103,7 +109,7 @@ void change_wordsize(number_t* num, int wordsize) {
   calcLength(num);
 }
 
-/********* binary2udec *************/
+/********* number_getUdec *************/
 /* calculates the unsigned decimal for bitstring
  *
  * parameters:
@@ -114,26 +120,26 @@ void change_wordsize(number_t* num, int wordsize) {
  * We Assume:
  *  binary is non-negative and contains only 1's and 0's
  */
-unsigned int binary2udec(number_t* num) {
+unsigned long long number_getUdec(number_t* num) {
   if (num == NULL) {
-    fprintf(stderr, "binary2udec: null number\n");
+    fprintf(stderr, "number_getUdec: null number\n");
     return 0;
   }
   char* bin = num->bits;
-  unsigned long value = 0;
+  unsigned long long value = 0;
   for (int i = 1; i <= num->len; i++) {
     char bit = bin[num->wordsize - i];
 #ifdef DEBUG
     printf("bit: %c\n", bit);
 #endif
     if (bit == '1') {
-      value += 1 << (i-1);
+      value += (long long)1 << (i-1);
     }
   }
   return value;
 }
 
-/********* binary2sdec *************/
+/********* number_getSdec *************/
 /* calculates the signed decimal for bitstring
  *
  * parameters:
@@ -144,15 +150,15 @@ unsigned int binary2udec(number_t* num) {
  * We Assume:
  *  binary contains only 1's and 0's
  */
-signed int binary2sdec(number_t* num) {
+signed long long number_getSdec(number_t* num) {
   if (num == NULL) {
-    fprintf(stderr, "binary2sdec: null number\n");
+    fprintf(stderr, "number_getSdec: null number\n");
     return 0;
   }
   char* bin = num->bits;
-  long value;
+  long long value;
   if (bin[0] == '1')
-    value = - (1 << (num->wordsize-1));
+    value = - ((long long)1 << (num->wordsize-1));
   else
     value = 0;
   for (int i = 1; i <= num->len && i < num->wordsize; i++) {
@@ -225,46 +231,7 @@ void hex2binary(const char* hex, char* binary) {
     fprintf(stderr, "hex2binary: null hexstring passed\n");
     return;
   }
-  // int partial;
-  // char MSNib = hex[0];
-  // if (MSNib == '8' || MSNib == '9' || (MSNib >= 'a' && MSNib <= 'f')) {
-  //   partial = 0;
-  // } else if (MSNib <= '7' && MSNib >= '5') {
-  //   partial = 3;
-  // } else if (MSNib <= '4' && MSNib >= '2') {
-  //   partial = 2;
-  // } else if (MSNib == '1' || MSNib == '0'){
-  //   partial = 1;
-  // } else {
-  //   fprintf(stderr, "hex2binary: invalid MSB\n");
-  //   return;
-  // }
-  // int bitLength = strlen(hex)*4 + partial + 1;
-  // char bitstring[bitLength];
-  // bitstring[bitLength-1] = '\0';
-  // int bitPointer = bitLength - 2;
-  // int hexPointer = strlen(hex) - 1;
-  // while (hexPointer >= 0) {
-  //   int nibbleVal;
-  //   char nibble = hex[hexPointer];
-  //   if ((nibble > 'f' || nibble < 'a') && !(nibble < '0' || nibble > '9')) {
-  //     fprintf(stderr, "hex2binary: invalid hex character\n");
-  //     return;
-  //   }
-  //   if (nibble >= 'a') {
-  //     nibbleVal = nibble - 'a' + 10;
-  //   } else {
-  //     nibbleVal = nibble - '0';
-  //   }
-  //   while (nibbleVal != 0) {
-  //     int rem = nibbleVal % 2;
-  //     bitstring[bitPointer] = rem + '0';
-  //     bitPointer--;
-  //     nibbleVal = nibbleVal >> 1;
-  //   }
-  //   hexPointer--;
-  // }
-  int bitLength = strlen(hex) * 4 + 1;
+  int bitLength = min(65, strlen(hex) * 4 + 1);
   char bitstring[bitLength];
   bitstring[bitLength-1] = 0;
   int bitPointer = bitLength - 2;
@@ -312,7 +279,9 @@ void number_print(number_t* number) {
   printf("NUMBER %p\n", number);
 #endif
   printf("WORDSIZE %d\n", number->wordsize);
+#ifdef DEBUG
   printf("LENGTH %d\n", number->len);
+#endif
   printf("BITSTRING "); printBits(number); printf("\n");
 #ifdef DEBUG
   char* bs = number->bits;
@@ -461,7 +430,7 @@ number_t* sub (number_t* a, number_t* b) {
 }
 
 number_t* lshift(number_t* number, number_t* positions) {
-  int pos = binary2udec(positions);
+  int pos = number_getUdec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
@@ -481,7 +450,7 @@ number_t* lshift(number_t* number, number_t* positions) {
 }
 
 number_t* rshift(number_t* number, number_t* positions) {
-  int pos = binary2udec(positions);
+  int pos = number_getUdec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
