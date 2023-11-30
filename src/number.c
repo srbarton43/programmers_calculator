@@ -161,10 +161,39 @@ signed int binary2sdec(number_t* num) {
     printf("bit: %c\n", bit);
 #endif
     if (bit == '1') {
-      value += 1 << (i-1);
+      value += (long long)1 << (i-1);
     }
   }
   return value;
+}
+
+char* number_getHex(number_t* number) {
+  int hLen;
+  int nLen = number->len;
+  if(nLen % 4 == 0) 
+    hLen = nLen/4+3;
+  else
+    hLen = nLen/4+4;
+  char* hex = malloc((hLen) * sizeof(char));
+  int nibble;
+  int hp = 2;
+  int i = 1;
+  while(i <= nLen) {
+    nibble = 0;
+    int j;
+    for (j = i; j < i+4 && j <= nLen; j++) {
+      nibble += ((number->bits[number->wordsize - j] - '0') << (j-i));
+    }
+    i = j;
+    if(nibble < 10)
+      hex[hLen - hp] = nibble + '0';
+    else
+      hex[hLen - hp] = nibble + 'a'-10;
+    hp++;
+  }
+  hex[0] = '0'; hex[1] = 'x';
+  hex[hLen-1] = 0;
+  return hex;
 }
 
 void dec2binary(unsigned long decimal, char* binary) {
@@ -292,8 +321,11 @@ void number_print(number_t* number) {
     printf("%c", bs[i]);
   printf("\n");
 #endif
-  printf("Unsigned Decimal Value: %u\n", binary2udec(number));
-  printf("Signed Decimal Value: %d\n", binary2sdec(number));
+  printf("Integer Value: %lld\n", number_getSdec(number));
+  printf("Unsigned Integer Value: %llu\n", number_getUdec(number));
+  char* hex = number_getHex(number);
+  printf("Hexadecimal Value: %s\n", hex);
+  free(hex);
   printf("--------------\n");
 }
 

@@ -144,7 +144,22 @@ unsigned int binary2udec(number_t* number);
  * we guarantee:
  *    number is unchanged
  */
-signed int binary2sdec(number_t* number);
+signed long long number_getSdec(number_t* number);
+
+/*
+ * number_getHex
+ *
+ * params:
+ *    number_t* number  := pointer to number
+ *
+ * return:
+ *    char* hex := alloc'ed hexstring
+ *
+ * caller must:
+ *    free the returned hex string
+ */
+char* number_getHex(number_t* number);
+
 /////////////////////////////////////////
 //           OPERATORS                 //
 /////////////////////////////////////////
