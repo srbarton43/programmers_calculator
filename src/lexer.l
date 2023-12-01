@@ -7,15 +7,14 @@
 %option nounput
 %option noinput
 
-OPS "+"|"-"|"~"|"("|")"|"="|"&"|"|"
-
 %%
 quit        { return(QUIT); }
 ws          { return(W_SIZE); }
 ">>"        { return(RSHIFT); }
 "<<"        { return(LSHIFT); }
-OPS         { yylval.c_value = yytext[0]; return (int)yytext[0]; }
-[10]+      { yylval.s_value = yytext; return BIN; }
+"+"|"-"|"~"|"("|")"|"="|"&"|"|" { yylval.c_value = yytext[0]; 
+              return (int)yytext[0]; }
+[10]+       { yylval.s_value = yytext; return BIN; }
 [1-9][0-9]* { yylval.s_value = yytext; return DEC; }
 0x[0-9a-f]+ { yylval.s_value = yytext; return HEX; }
 \n          { return EOL; }
