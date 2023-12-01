@@ -176,7 +176,7 @@ char* number_getHex(number_t* number);
  * returns:
  *  none
  */
-void dec2binary(unsigned long decimal, char* binary);
+void dec2binary(unsigned long long decimal, char* binary);
 
 /*             hex2binary               */
 /*
@@ -196,10 +196,7 @@ void hex2binary(const char* hex, char* binary);
  * returns one's complement of num (bitwise not)
  *
  * params:
- *    number_t* num := valid pointer to number
- *    int wordsize  := wordsize for return number
- *
- * returns:
+ *    number_t* num := valid pointer to number int wordsize  := wordsize for return number returns:
  *    number_t* number where...
  *      number->wordsize = wordsize
  */
@@ -307,6 +304,9 @@ int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_and(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
 int test_or(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
+
+int test_dec2binary(unsigned long long decimal, char* expected);
+int test_hex2binary(char* hex, char* expected);
 
 #endif
 

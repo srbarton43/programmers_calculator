@@ -1,3 +1,4 @@
+run_command('cp', '-rf', 'inputs', meson.global_build_root() / 'test' / 'unittests', check : true)
 
 test_addition_exe = executable( 'test_addition', 'addition.c',
   include_directories : inc,
@@ -47,4 +48,18 @@ test_or_exe = executable( 'test_or', 'or.c',
   c_args : '-DUNIT_TEST' )
 
 test('bitwise OR', test_or_exe)
+
+test_d2b_exe = executable( 'test_dec2binary', 'dec2binary.c',
+  include_directories : inc,
+  link_with : [hashtable, unittest_lib],
+  c_args : '-DUNIT_TEST' )
+
+test('decimal to binary conversion', test_d2b_exe, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'd2b.txt' )
+
+test_h2b_exe = executable( 'test_hex2binary', 'hex2binary.c',
+  include_directories : inc,
+  link_with : [hashtable, unittest_lib],
+  c_args : '-DUNIT_TEST' )
+
+test('hexadecimal to binary conversion', test_h2b_exe, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'h2b.txt' )
 

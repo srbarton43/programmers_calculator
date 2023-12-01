@@ -207,7 +207,7 @@ char* number_getHex(number_t* number) {
   return hex;
 }
 
-void dec2binary(unsigned long decimal, char* binary) {
+void dec2binary(unsigned long long decimal, char* binary) {
   if (binary == NULL) {
     fprintf(stderr, "dec2binary: bitstring");
     return;
@@ -258,7 +258,10 @@ void hex2binary(const char* hex, char* binary) {
       nibbleVal = nibbleVal >> 1;
     }
   }
-  strcpy(binary, bitstring);
+  // remove leading zeroes
+  char* p = bitstring;
+  while (*p != 0 && *p == '0') p++;
+  strcpy(binary, p);
 }
 
 void delete_number (number_t* number) {
@@ -723,7 +726,33 @@ int test_or(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   delete_number(b);
   delete_number(ored);
   return ret;
-  
 }
 
+int test_dec2binary(unsigned long long decimal, char* expected) {
+  printf("decimal = %llu\n", decimal);
+  printf("expected bitstring = %s\n", expected);
+  char out[65];
+  dec2binary(decimal, out);
+  printf("actual bitstring =   %s\n", out);
+  int ret = strcmp(expected, out) != 0;
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  return ret;
+}
+
+int test_hex2binary(char* hex, char* expected) {
+  printf("hexstring = 0x%s\n", hex);
+  printf("expected bitstring = %s\n", expected);
+  char out[65];
+  hex2binary(hex, out);
+  printf("actual bitstring =   %s\n", out);
+  int ret = strcmp(expected, out) != 0;
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  return ret;
+}
 #endif
