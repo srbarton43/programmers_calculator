@@ -56,7 +56,7 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
  * nums_add_number - adds bitstring->number pair to ht
  * 
  * params:
- *    number_t* number  := string representing number
+ *    number_t* number  := number struct
  * returns:
  *    char* key         := bitstring used as key in ht
  * 

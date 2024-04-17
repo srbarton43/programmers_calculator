@@ -69,6 +69,11 @@ statement: QUIT
             {
               YYACCEPT; // return from yyparse with 0 return code
             }
+         | W_SIZE
+            {
+              printf("The current wordsize is %d\n", prog_data->wordsize);
+              $$ = "foo";
+            }
          | W_SIZE number
             {
               long long new_wsize = number_getSdec(nums_get_num(prog_data, $2));
