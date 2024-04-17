@@ -1,8 +1,8 @@
 # meson.build for src dir
 # SRB - 2023
 
-flex = '/opt/homebrew/opt/flex/bin/flex'
-bison = '/opt/homebrew/opt/bison/bin/bison'
+flex = '/usr/bin/flex'
+bison = '/Users/sbarton/.nix-profile/bin/bison'
 
 parser_prefix = '/'.join(meson.global_build_root(), 'parser')
 parser_src = '.'.join(parser_prefix, 'tab.c')
