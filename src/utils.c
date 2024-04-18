@@ -56,7 +56,7 @@ void free_program_data(program_data_t* p_data) {
 
 static hashtable_t* setup_ht() {
   hashtable_t* ht = hashtable_new(nums_SIZE);
-  hashtable_insert(ht, "0", copy_number(_zero_, 0));
+  hashtable_insert(ht, "0", copy_number(_zero_, 1));
   return ht;
 }
 
@@ -72,27 +72,37 @@ static void item_print(FILE* fp, const char* key, void* item) {
 /*            nums_add_string           */ 
 char* nums_add_string(program_data_t* prog_data, const char* number, type_e type) {
   
+  int len;
   // get the binary key associated with the number
-  char* key = malloc(100*sizeof(char));
+  char* key = malloc((prog_data->wordsize+1)*sizeof(char));
   const char* chopped = number;
   // chop off leading zeroes and hex signifier
-  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++; 
+  while(*chopped != '\0' && (*chopped == '0' || *chopped == 'x')) chopped++; 
   if (strlen(chopped) < 1)
     strcpy(key, "0");
   else {
+    if (strlen(chopped) >= prog_data->wordsize) {
+      printf("%s: the number is larger than wordsize", __FUNCTION__);
+    }
     unsigned long decimal;
     char raw_hex[100];
     switch (type) {
       case BINARY:
-        strcpy(key, chopped);
+        len = strlen(chopped);
+        for (int i = 0; i < prog_data->wordsize - len; i++)
+          key[i] = '0';
+        for (int i = prog_data->wordsize - len; i < prog_data->wordsize; i++)
+          key[i] = chopped[i - prog_data->wordsize + len];
+#ifdef DEBUG
+#endif
         break;
       case DECIMAL:
         decimal = atol(chopped);
-        dec2binary(decimal, key);
+        dec2binary(decimal, key, prog_data->wordsize);
         break;
       case HEXADECIMAL:
         strcpy(raw_hex, chopped);
-        hex2binary(raw_hex, key);
+        hex2binary(raw_hex, key, prog_data->wordsize);
 #ifdef DEBUG
         printf("raw_hex: %s\n", raw_hex);
         printf("hex key: %s\n", key);
@@ -102,8 +112,10 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
         printf("error: invalid number type in add_string\n");
         return NULL;
     }
+    // PAD the KEY with leading zeroes
     number_t* num = NULL;
 #ifdef DEBUG
+        printf("KEY: %s\n", key);
 #endif     
     if((num = hashtable_find(prog_data->nums, key)) == NULL)
       hashtable_insert(prog_data->nums, key, new_number(type, chopped, prog_data->wordsize));
@@ -124,17 +136,21 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
  
 /*            nums_add_number           */  
 char* nums_add_number(program_data_t* prog_data, number_t* number) {
-  char* key = malloc(100*sizeof(char));
+  char* key = malloc((number->wordsize+1)*sizeof(char));
   if (numbers_are_equal(number, _zero_)) {
     strcpy(key, "0");
     return key;
   }
   int i = 0;
-  for(; i < number->len; i++) {
-    key[i] = number->bits[i + number->wordsize - number->len];
+  for(; i < number->wordsize; i++) {
+    key[i] = number->bits[i];
   }
   key[i] = 0;
-  hashtable_insert(prog_data->nums, key, number);
+  if(!hashtable_insert(prog_data->nums, key, number)) {
+#ifdef DEBUG
+    printf("%s: key=%s already in the hashtable\n", __FUNCTION__, key);
+#endif
+  }
   return key;
 }
 

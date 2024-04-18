@@ -176,7 +176,7 @@ char* number_getHex(number_t* number);
  * returns:
  *  none
  */
-void dec2binary(unsigned long long decimal, char* binary);
+void dec2binary(unsigned long long decimal, char* binary, int wordsize);
 
 /*             hex2binary               */
 /*
@@ -189,7 +189,7 @@ void dec2binary(unsigned long long decimal, char* binary);
  * returns:
  *    nothing
  */
-void hex2binary(const char* hex, char* binary);
+void hex2binary(const char* hex, char* binary, int wordsize);
 
 /********* ONE's COMPLEMENT****************/
 /*
@@ -235,13 +235,13 @@ number_t* twos_comp(number_t* num, int wordsize);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t* add (number_t* a, number_t* b);
+number_t* add (number_t* a, number_t* b, int wordsize);
 
 /***************** SUB ***********************/
 /*
  * subtract a from b
  */
-number_t* sub (number_t* a, number_t* b);
+number_t* sub (number_t* a, number_t* b, int wordsize);
 
 /************** LSHIFT ***********************/
 /*
@@ -261,7 +261,7 @@ number_t* sub (number_t* a, number_t* b);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t* lshift (number_t* number, number_t* positions);
+number_t* lshift (number_t* number, number_t* positions, int wordsize);
 
 /************** RSHIFT ***********************/
 /*
@@ -281,17 +281,17 @@ number_t* lshift (number_t* number, number_t* positions);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t* rshift (number_t* number, number_t* positions);
+number_t* rshift (number_t* number, number_t* positions, int wordsize);
 
 /*
  *
  */
-number_t* and(number_t* a, number_t* b);
+number_t* and(number_t* a, number_t* b, int wordsize);
 
 /*
  *
  */
-number_t* or(number_t* a, number_t* b);
+number_t* or(number_t* a, number_t* b, int wordsize);
 
 
 #ifdef UNIT_TEST
@@ -302,10 +302,10 @@ int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg);
 int test_copy_number (char* num, int iws, int ows, char* expected, char* msg);
 int test_lshift(char* num, char* pos, char* expected, int wordsize, char* msg);
 int test_rshift(char* num, char* pos, char* expected, int wordsize, char* msg);
-int test_and(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
-int test_or(char* a, int aWs, char* b, int bWs, char* expected, char* msg);
+int test_and(int ws, char* a, int aWs, char* b, int bWs, char* expected, char* msg);
+int test_or(int ws, char* a, int aWs, char* b, int bWs, char* expected, char* msg);
 
-int test_dec2binary(unsigned long long decimal, char* expected);
+int test_dec2binary(unsigned long long decimal, char* expected, int wordsize);
 int test_hex2binary(char* hex, char* expected);
 
 #endif

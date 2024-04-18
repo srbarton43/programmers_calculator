@@ -2,6 +2,7 @@
 #include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main (int argc, char* argv[]) {
   init_numbers();
@@ -18,7 +19,7 @@ int main (int argc, char* argv[]) {
   
   while (fscanf(fp, "%llu %s\n", &decimal, expected) == 2) {
     printf("foo\n");
-    ret = max(ret, test_dec2binary(decimal, expected));
+    ret = max(ret, test_dec2binary(decimal, expected, strlen(expected)));
   }
     
   if (!ret) printf("All Tests Passed!\n");

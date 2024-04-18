@@ -113,7 +113,7 @@ expression: number
 #ifdef DEBUG
               printf("adding\n");
 #endif
-              number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               char* key = nums_add_number(prog_data, num);
               $$ = key;                                     
@@ -123,7 +123,7 @@ expression: number
 #ifdef DEBUG
               printf("subtracting\n");
 #endif
-              number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1));
+              number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
               free($3); free($1);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
@@ -133,7 +133,7 @@ expression: number
 #ifdef DEBUG
               printf("rshift\n"); 
 #endif
-              number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
@@ -143,7 +143,7 @@ expression: number
 #ifdef DEBUG
               printf("lshift\n");
 #endif
-              number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               //printf("result: \n"); number_print(num);
               char* key = nums_add_number(prog_data, num);
@@ -154,7 +154,7 @@ expression: number
 #ifdef DEBUG
               printf("and\n");
 #endif
-              number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
@@ -164,7 +164,7 @@ expression: number
 #ifdef DEBUG
               printf("or\n");
 #endif
-              number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3));
+              number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
@@ -174,7 +174,7 @@ expression: number
 #ifdef DEBUG
               printf("negation\n");
 #endif
-              number_t* num = twos_comp(nums_get_num(prog_data, $2), 0);
+              number_t* num = twos_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
               free($2);
               char* key = nums_add_number(prog_data, num);
               $$ = key;

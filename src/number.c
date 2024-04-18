@@ -50,8 +50,9 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
       case DECIMAL:
       {
         unsigned long decimal = atol(number);
-        dec2binary(decimal, bits);
+        dec2binary(decimal, bits, wordsize);
         slen = strlen(bits);
+        printf("slen: %d\n", slen);
         int i;
         for (i = 1; i <= wordsize; i++) {
           if (i <= slen)
@@ -65,7 +66,7 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
       case HEXADECIMAL:
       {
         char bits[65];
-        hex2binary(number, bits);
+        hex2binary(number, bits, wordsize);
 #ifdef DEBUG
         printf("hex number: %s\n", bits);
 #endif
@@ -207,7 +208,7 @@ char* number_getHex(number_t* number) {
   return hex;
 }
 
-void dec2binary(unsigned long long decimal, char* binary) {
+void dec2binary(unsigned long long decimal, char* binary, int wordsize) {
   if (binary == NULL) {
     fprintf(stderr, "dec2binary: bitstring");
     return;
@@ -220,26 +221,29 @@ void dec2binary(unsigned long long decimal, char* binary) {
     pointer++;
     decimal = decimal >> 1;
   }
-  char bitstring[pointer];
-  int i = 0;
-  while (pointer >= 0) {
-    bitstring[i] = bits_reversed[pointer-1];
-    i++;
-    pointer--;
+  char bitstring[wordsize+1];
+  int i = wordsize-1;
+  int p = 0;
+  while (i >= 0) {
+    if (p < pointer)
+      bitstring[i] = bits_reversed[p];
+    else
+      bitstring[i] = '0';
+    i--;
+    p++;
   }
-  bitstring[i] = '\0';
+  bitstring[wordsize] = '\0';
   strcpy(binary, bitstring);
 }
 
-void hex2binary(const char* hex, char* binary) {
+void hex2binary(const char* hex, char* binary, int wordsize) {
   if (hex == NULL) {
     fprintf(stderr, "hex2binary: null hexstring passed\n");
     return;
   }
-  int bitLength = min(65, strlen(hex) * 4 + 1);
-  char bitstring[bitLength];
-  bitstring[bitLength-1] = 0;
-  int bitPointer = bitLength - 2;
+  char bitstring[wordsize + 1];
+  bitstring[wordsize] = 0;
+  int bitPointer = wordsize - 1;
   int hexPointer = strlen(hex) - 1;
   while (hexPointer >= 0) {
     int nibbleVal;
@@ -258,10 +262,12 @@ void hex2binary(const char* hex, char* binary) {
       nibbleVal = nibbleVal >> 1;
     }
   }
+  while (bitPointer >= 0)
+    bitstring[bitPointer--] = '0';
   // remove leading zeroes
-  char* p = bitstring;
-  while (*p != 0 && *p == '0') p++;
-  strcpy(binary, p);
+  //char* p = bitstring;
+  //while (*p != 0 && *p == '0') p++;
+  strcpy(binary, bitstring);
 }
 
 void delete_number (number_t* number) {
@@ -319,8 +325,11 @@ static void printBits(number_t* num) {
 
 number_t* copy_number(number_t* number, int wordsize) {
   number_t* new_num = malloc(sizeof(number_t));
-  if (wordsize == 0)
+  if (wordsize == 0) {
     new_num->wordsize = number->wordsize;
+    printf("don't do this\n");
+    exit(69);
+  }
   else
     new_num->wordsize = wordsize;
   new_num->len = min(number->len, new_num->wordsize);
@@ -369,7 +378,7 @@ number_t* twos_comp(number_t* num, int wordsize) {
 
   
   // add one
-  number_t* twos = add(_one_, ones);
+  number_t* twos = add(_one_, ones, wordsize);
   
   // cleanup
   delete_number(ones);
@@ -377,19 +386,18 @@ number_t* twos_comp(number_t* num, int wordsize) {
   return twos;
 }
 
-number_t* add(number_t* a, number_t* b) {
+number_t* add(number_t* a, number_t* b, int wordsize) {
   if (!a || !b) {
     perror("Can't add a NULL number(s)");
     return NULL;
   }
 #ifdef DEBUG
-  printf("asize: %d; bsize: %d\n", a->wordsize, b->wordsize);
+  printf("asize: %d; bsize: %d, prog_data->ws: %d\n", a->wordsize, b->wordsize, wordsize);
 #endif
-  int ws = max(a->wordsize, b->wordsize);
-  number_t* sum = new_number(BINARY, "", ws);
+  number_t* sum = new_number(BINARY, "", wordsize);
   char aBit, bBit;
   char carry = '0';
-  for (int i = 1; i <= ws; i++) {
+  for (int i = 1; i <= wordsize; i++) {
     if (i <= a->wordsize)
       aBit = a->bits[a->wordsize-i];
     else
@@ -404,19 +412,19 @@ number_t* add(number_t* a, number_t* b) {
 #endif
     switch (carry+aBit+bBit) {
       case (3*'1'):
-        sum->bits[ws-i] = '1';
+        sum->bits[wordsize-i] = '1';
         carry = '1';
         break;
       case (2*'1'+'0'):
-        sum->bits[ws-i] = '0';
+        sum->bits[wordsize-i] = '0';
         carry = '1';
         break;
       case ('1'+2*'0'):
-        sum->bits[ws-i] = '1';
+        sum->bits[wordsize-i] = '1';
         carry = '0';
         break;
       case (3*'0'):
-        sum->bits[ws-i] = '0';
+        sum->bits[wordsize-i] = '0';
         carry = '0';
         break;
       default:
@@ -428,22 +436,22 @@ number_t* add(number_t* a, number_t* b) {
   return sum;
 }
 
-number_t* sub (number_t* a, number_t* b) {
+number_t* sub (number_t* a, number_t* b, int wordsize) {
   number_t* neg_a = twos_comp(a, max(b->wordsize, a->wordsize));
-  number_t* sum = add(b, neg_a);
+  number_t* sum = add(b, neg_a, wordsize);
 
   delete_number(neg_a);
 
   return sum;
 }
 
-number_t* lshift(number_t* number, number_t* positions) {
+number_t* lshift(number_t* number, number_t* positions, int wordsize) {
   int pos = number_getUdec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
   }
-  number_t* new_num = copy_number(number, 0);
+  number_t* new_num = copy_number(number, wordsize);
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
@@ -457,13 +465,13 @@ number_t* lshift(number_t* number, number_t* positions) {
   return new_num;
 }
 
-number_t* rshift(number_t* number, number_t* positions) {
+number_t* rshift(number_t* number, number_t* positions, int wordsize) {
   int pos = number_getUdec(positions);
   if (pos < 0) {
     printf("pos must be positive\n");
     return NULL;
   }
-  number_t* new_num = copy_number(number, 0);
+  number_t* new_num = copy_number(number, wordsize);
   char* old = number->bits;
   char* new = new_num->bits;
   int i = 0;
@@ -486,24 +494,22 @@ number_t* rshift(number_t* number, number_t* positions) {
 }
 
 /*           and             */
-number_t* and(number_t* a, number_t* b) {
-  int ws = max(a->wordsize, b->wordsize);
-  number_t* num = copy_number(_zero_, ws);
+number_t* and(number_t* a, number_t* b, int wordsize) {
+  number_t* num = copy_number(_zero_, wordsize);
   int aWs = a->wordsize; int bWs = b->wordsize;
-  for(int i = 1; i <= ws; i++) {
-    num->bits[ws-i] = (a->bits[aWs-i] == '1' && b->bits[bWs-i] == '1') + '0';
+  for(int i = 1; i <= wordsize; i++) {
+    num->bits[wordsize-i] = (a->bits[aWs-i] == '1' && b->bits[bWs-i] == '1') + '0';
   }
   calcLength(num);
   return num;
 }
 
 /*             or              */
-number_t* or(number_t* a, number_t* b) {
-  int ws = max(a->wordsize, b->wordsize);
-  number_t* num = copy_number(_zero_, ws);
+number_t* or(number_t* a, number_t* b, int wordsize) {
+  number_t* num = copy_number(_zero_, wordsize);
   int aWs = a->wordsize; int bWs = b->wordsize;
-  for(int i = 1; i <= ws; i++) {
-    num->bits[ws-i] = (a->bits[aWs-i] == '1' || b->bits[bWs-i] == '1') + '0';
+  for(int i = 1; i <= wordsize; i++) {
+    num->bits[wordsize-i] = (a->bits[aWs-i] == '1' || b->bits[bWs-i] == '1') + '0';
   }
   calcLength(num);
   return num;
@@ -565,7 +571,7 @@ int test_twos_comp(char* num, char* expected, int wordsize, char* msg) {
   number_t* n = new_number(BINARY, num, wordsize);
   printf("num = "); printBits(n); printf("\n");
    printf("expected two's complement = %s\n", expected);
-  number_t* twos = twos_comp(n, 0);
+  number_t* twos = twos_comp(n, wordsize);
   printf("actual two's complement = "); printBits(twos); printf("\n");
   int ret = isEqualToBitstring(twos, expected);
   if (!ret)
@@ -586,7 +592,7 @@ int test_lshift (char* num, char* pos, char* expected, int wordsize, char* msg) 
   printf("num = "); printBits(n); printf("\n");
   printf("pos = "); printBits(p); printf("\n");
   printf("expected num << pos = %s\n", expected);
-  number_t* res = lshift(n, p);
+  number_t* res = lshift(n, p, wordsize);
   printf("actual num << pos = "); printBits(res); printf("\n");
   int ret = isEqualToBitstring(res, expected);
   if (!ret)
@@ -608,7 +614,7 @@ int test_rshift (char* num, char* pos, char* expected, int wordsize, char* msg) 
   printf("num = "); printBits(n); printf("\n");
   printf("pos = "); printBits(p); printf("\n");
   printf("expected num >> pos = %s\n", expected);
-  number_t* res = rshift(n, p);
+  number_t* res = rshift(n, p, wordsize);
   printf("actual num >> pos = "); printBits(res); printf("\n");
   int ret = isEqualToBitstring(res, expected);
   if (!ret)
@@ -630,7 +636,7 @@ int test_add (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) 
   printf("a = "); printBits(a); printf("\n");
   printf("b = "); printBits(b); printf("\n");
   printf("expected a+b = %s\n", expected);
-  number_t* sum = add(a, b);
+  number_t* sum = add(a, b, max(aWs, bWs));
   printf("actual a+b = "); printBits(sum); printf("\n");
   int ret = isEqualToBitstring(sum, expected);
   if (!ret)
@@ -671,7 +677,7 @@ int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) 
   printf("b = "); printBits(b); printf("\n");
   printf("a = "); printBits(a); printf("\n");
   printf("expected b-a = %s\n", expected);
-  number_t* sum = sub(a, b);
+  number_t* sum = sub(a, b, max(aWs, bWs));
   printf("actual b-a = "); printBits(sum); printf("\n");
   int ret = isEqualToBitstring(sum, expected);
   if (!ret)
@@ -684,7 +690,7 @@ int test_sub (char* aS, int aWs, char* bS, int bWs, char* expected, char*  msg) 
   return ret;
 }
 
-int test_and(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
+int test_and(int ws, char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   printf("_____ AND a&b (%d-bit - %d-bit) _____\n", aWs, bWs);
   if (msg != NULL) 
     printf("Objective: %s\n", msg);
@@ -693,7 +699,7 @@ int test_and(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   printf("b = "); printBits(b); printf("\n");
   printf("a = "); printBits(a); printf("\n");
   printf("expected a&b = %s\n", expected);
-  number_t* anded = and(a, b);
+  number_t* anded = and(a, b, ws);
   number_print(anded);
   printf("actual a&b = "); printBits(anded); printf("\n");
   int ret = isEqualToBitstring(anded, expected);
@@ -706,7 +712,7 @@ int test_and(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   delete_number(anded);
   return ret; 
 }
-int test_or(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
+int test_or(int ws, char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   printf("_____ OR a|b (%d-bit | %d-bit) _____\n", aWs, bWs);
   if (msg != NULL) 
     printf("Objective: %s\n", msg);
@@ -715,7 +721,7 @@ int test_or(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   printf("a = "); printBits(a); printf("\n");
   printf("b = "); printBits(b); printf("\n");
   printf("expected a|b = %s\n", expected);
-  number_t* ored = or(a, b);
+  number_t* ored = or(a, b, ws);
   printf("actual a|b = "); printBits(ored); printf("\n");
   int ret = isEqualToBitstring(ored, expected);
   if (!ret)
@@ -728,11 +734,11 @@ int test_or(char* aS, int aWs, char* bS, int bWs, char* expected, char* msg) {
   return ret;
 }
 
-int test_dec2binary(unsigned long long decimal, char* expected) {
+int test_dec2binary(unsigned long long decimal, char* expected, int wordsize) {
   printf("decimal = %llu\n", decimal);
   printf("expected bitstring = %s\n", expected);
   char out[65];
-  dec2binary(decimal, out);
+  dec2binary(decimal, out, wordsize);
   printf("actual bitstring =   %s\n", out);
   int ret = strcmp(expected, out) != 0;
   if (!ret)
@@ -746,7 +752,7 @@ int test_hex2binary(char* hex, char* expected) {
   printf("hexstring = 0x%s\n", hex);
   printf("expected bitstring = %s\n", expected);
   char out[65];
-  hex2binary(hex, out);
+  hex2binary(hex, out, strlen(expected));
   printf("actual bitstring =   %s\n", out);
   int ret = strcmp(expected, out) != 0;
   if (!ret)
