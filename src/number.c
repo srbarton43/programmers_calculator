@@ -296,14 +296,12 @@ void number_print(number_t* number) {
 #ifdef DEBUG
   printf("LENGTH %d\n", number->len);
 #endif
-  printf("BITSTRING "); printBits(number); printf("\n");
-#ifdef DEBUG
+  //printf("BITSTRING "); printBits(number); printf("\n");
   char* bs = number->bits;
-  printf("RAW ");
+  printf("BITSTRING ");
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
   printf("\n");
-#endif
   printf("Integer Value: %lld\n", number_getSdec(number));
   printf("Unsigned Integer Value: %llu\n", number_getUdec(number));
   char* hex = number_getHex(number);
