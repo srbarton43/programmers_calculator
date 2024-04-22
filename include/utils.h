@@ -16,7 +16,9 @@
 
 typedef struct program_data {
   hashtable_t* nums;
+  hashtable_t* ten_bit_nums;
   int wordsize;
+  int poison;
   char* vars[VAR_NUM];
 } program_data_t;
 
@@ -56,6 +58,8 @@ void free_program_data(program_data_t* prog_data);
  */
 char* nums_add_string(program_data_t* prog_data, const char* number, type_e type);
 
+char* ten_bit_nums_add_string(program_data_t* prog_data, const char* decimal);
+
 /*
  * nums_add_number - adds bitstring->number pair to ht
  * 
@@ -78,6 +82,8 @@ char* nums_add_number(program_data_t* prog_data, number_t* number);
  *    number_t* num       := pointer to the number
  */
 number_t* nums_get_num(program_data_t* prog_data, const char* number);
+
+number_t* ten_bit_nums_get_num(program_data_t* prog_data, char* decimal);
 
 char* vars_get_val(program_data_t* prog_data, char var);
 

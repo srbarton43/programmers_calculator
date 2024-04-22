@@ -49,7 +49,7 @@ line: EOL
         printf("line\n");
 #endif
         
-        if ($1 == NULL) {
+        if ($1 == NULL || prog_data->poison) {
           printf("Error...\n");
         } else if (strcmp("foo", $1) == 0) {
           // wsize change
@@ -61,6 +61,7 @@ line: EOL
           number_print(num);
           free($1);
         }
+        prog_data->poison = 0;
       }
     | error EOL
     ;
@@ -76,13 +77,14 @@ statement: QUIT
             }
          | W_SIZE number
             {
-              long long new_wsize = number_getSdec(nums_get_num(prog_data, $2));
+              long long new_wsize = number_getSdec(ten_bit_nums_get_num(prog_data, $2));
               if (new_wsize < 4 || new_wsize > 64) {
                 printf("unsupported wordsize: %lld\n", new_wsize);
               } else {
                 printf("changed wordsize to %lld\n", new_wsize);
                 prog_data->wordsize = new_wsize;
               }
+              prog_data->poison = 0;
               $$ = "foo";
             }
          | VAR '=' expression
@@ -200,8 +202,14 @@ number: DEC
 #ifdef DEBUG
           printf("decimal\n");
 #endif
+          char *ten_bit_key = ten_bit_nums_add_string(prog_data, $1);
           char* key = nums_add_string(prog_data, $1, DECIMAL);
-          $$ = key;
+          if (key) {
+            $$ = key;
+          } else {
+            $$ = ten_bit_key;
+            prog_data->poison = 1;
+          }
         }
       | HEX
         {

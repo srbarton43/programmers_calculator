@@ -25,16 +25,21 @@ program_data_t* init_program_data(void) {
   program_data_t* p_data = malloc(sizeof(program_data_t));
 
   p_data->nums = setup_ht();
+  p_data->ten_bit_nums = setup_ht();
   for (int i = 0; i < VAR_NUM; i++)
     p_data->vars[i] = 0;
   p_data->wordsize = DEFAULT_WS;
+  p_data->poison = 0;
 
   return p_data;
 }
 
 void print_program_data(program_data_t* p_data) {
   printf("\n***********************\n"); printf("Numbers Table\n");
+  printf("nums:\n");
   hashtable_print(p_data->nums, stdout, item_print);
+  printf("ten_bit_nums:\n");
+  hashtable_print(p_data->ten_bit_nums, stdout, item_print);
   printf("\n***********************\n"); printf("Variables\n");
   for(int i = 0; i < VAR_NUM; i++) {
     printf("%c = ", 'a'+i);
@@ -146,6 +151,20 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
   
   return key; 
 }
+
+char* ten_bit_nums_add_string(program_data_t* prog_data, const char* decimal) {
+  char *key = malloc((10+1)*sizeof(char));
+  unsigned long dec = atol(decimal);
+  if (dec > 2 << 10) {
+    return NULL;
+  }
+  dec2binary(dec, key, 10);
+  
+  number_t *num = NULL;
+  if((num = hashtable_find(prog_data->ten_bit_nums, key)) == NULL)
+    hashtable_insert(prog_data->ten_bit_nums, key, new_number(DECIMAL, decimal, 10));
+  return key;
+}
  
 /*            nums_add_number           */  
 char* nums_add_number(program_data_t* prog_data, number_t* number) {
@@ -172,6 +191,26 @@ number_t* nums_get_num(program_data_t* prog_data, const char* number) {
   number_t* num = hashtable_find(prog_data->nums, number);
   if(!num) {
     printf("this shouldnt happen\n");
+  }
+  return num;
+}
+
+number_t* ten_bit_nums_get_num(program_data_t* prog_data, char* key) {
+  // pad key to 10 bits
+  char *s;
+  s = key;
+  while(*s == '0') s++;
+  char padded[11];
+  padded[10] = '\0';
+  int key_slen = strlen(s);
+  for (int i = 0; i < 10 - key_slen; i++)
+    padded[i] = '0';
+  for (int i = 10 - key_slen; i <= 10; i++)
+    padded[i] = s[i-(10-key_slen)];
+  number_t *num = hashtable_find(prog_data->ten_bit_nums, padded);
+  if(!num) {
+    printf("%s: this shouldn't happen\n", __FUNCTION__);
+    return NULL;
   }
   return num;
 }
