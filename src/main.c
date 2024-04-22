@@ -1,16 +1,12 @@
-#include <stdlib.h>
-#include <string.h>
-
-#include "hashtable.h"
-#include "parser.tab.h"
 #include "number.h"
+#include "parser.tab.h"
 #include "utils.h"
 
 void yylex_destroy(void);
 
-//extern hashtable_t* ht;
-//extern int global_wordsize;
-program_data_t* prog_data;
+// extern hashtable_t* ht;
+// extern int global_wordsize;
+program_data_t *prog_data;
 
 int main() {
   init_numbers();
@@ -26,5 +22,3 @@ int main() {
   free_numbers();
   return ret;
 }
-
-

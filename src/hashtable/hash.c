@@ -3,16 +3,14 @@
  *
  * Implementation details can be found at:
  *     http://www.burtleburtle.net/bob/hash/doobs.html
- * ========================================================================= 
+ * =========================================================================
  */
 
+#include "hash.h"
 #include <string.h>
-#include "hash.h" 
 
 // hash_jenkins - see header file for usage
-unsigned long
-hash_jenkins(const char* str, const unsigned long mod)
-{
+unsigned long hash_jenkins(const char *str, const unsigned long mod) {
   if (str == NULL || mod <= 1) {
     return 0;
   }

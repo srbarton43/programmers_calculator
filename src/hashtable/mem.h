@@ -1,13 +1,13 @@
-/* 
- * memory - mem_malloc and related functions 
- * 
+/*
+ * memory - mem_malloc and related functions
+ *
  * 1. Replacements for malloc(), calloc(), and free(),
  *    that count the number of calls to each,
  *    so you can print reports about the current balance of memory.
- * 
+ *
  * 2. Variants that 'assert' the result is non-NULL;
  *    if NULL occurs, kick out an error and die.
- * 
+ *
  * 3. A generic 'assert' function that checks a given pointer and,
  *    if NULL, kicks out an error and exits; otherwise it passes
  *    the pointer through to its return value.  Useful in code
@@ -33,12 +33,12 @@
  *   the value of p
  * We exit if p=NULL, after printing message to stderr.
  */
-void* mem_assert(void* p, const char* message);
+void *mem_assert(void *p, const char *message);
 
 /**************** mem_assert_const **************************/
 /* Identical to mem_assert, but suitable for p declared const.
  */
-const void* mem_assert_const(const void* p, const char* message);
+const void *mem_assert_const(const void *p, const char *message);
 
 /**************** mem_malloc_assert() ****************/
 /* Like malloc() but track the number of successful allocations,
@@ -50,7 +50,7 @@ const void* mem_assert_const(const void* p, const char* message);
  *   the pointer produced by malloc.
  * We exit if any error, after printing to stderr.
  */
-void* mem_malloc_assert(const size_t size, const char* message);
+void *mem_malloc_assert(const size_t size, const char *message);
 
 /**************** mem_malloc() ****************/
 /* Just like malloc() but track the number of successful allocations
@@ -60,7 +60,7 @@ void* mem_malloc_assert(const size_t size, const char* message);
  *   pointer to allocated space, or NULL if failure.
  * We track the number of calls - see mem_net().
  */
-void* mem_malloc(const size_t size);
+void *mem_malloc(const size_t size);
 
 /**************** mem_calloc_assert() ****************/
 /* Just like calloc() but track the number of successful allocations
@@ -72,8 +72,8 @@ void* mem_malloc(const size_t size);
  *   the pointer produced by calloc.
  * We exit if any error, after printing to stderr.
  */
-void* mem_calloc_assert(const size_t nmemb, const size_t size, 
-                          const char* message);
+void *mem_calloc_assert(const size_t nmemb, const size_t size,
+                        const char *message);
 
 /**************** mem_calloc() ****************/
 /* Just like calloc() but track the number of successful allocations.
@@ -83,7 +83,7 @@ void* mem_calloc_assert(const size_t nmemb, const size_t size,
  *   pointer to allocated space, or NULL if failure.
  * We track the number of calls - see mem_net().
  */
-void* mem_calloc(const size_t nmemb, const size_t size);
+void *mem_calloc(const size_t nmemb, const size_t size);
 
 /**************** mem_free() ****************/
 /* Just like free() but track the number of calls.
@@ -91,7 +91,7 @@ void* mem_calloc(const size_t nmemb, const size_t size);
  *   caller provides pointer to space produced by mem_malloc or mem_calloc.
  * We track the number of calls - see mem_net().
  */
-void mem_free(void* ptr);
+void mem_free(void *ptr);
 
 /**************** mem_report() ****************/
 /* Print a report of the current malloc/free counts.
@@ -100,12 +100,12 @@ void mem_free(void* ptr);
  * We format and print a report to that FILE, indicating the number of calls
  * to mem_malloc/calloc and of calls to mem_free, and the net difference.
  */
-void mem_report(FILE* fp, const char* message);
+void mem_report(FILE *fp, const char *message);
 
 /**************** mem_net() ****************/
 /* Return the current net malloc-free counts.
  * We assume:
- *   caller has been using mem_malloc/calloc and mem_free. 
+ *   caller has been using mem_malloc/calloc and mem_free.
  * We return:
  *   returns positive if there are unfreed allocations,
  *   returns negative if there were more free's than alloc's (!),

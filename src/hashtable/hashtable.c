@@ -6,31 +6,29 @@
  * Sam Barton, January 2022
  */
 
+#include "hashtable.h"
+#include "hash.h"
+#include "mem.h"
+#include "set.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
-#include "hash.h"
-#include "hashtable.h"
-#include "mem.h"
-#include "set.h"
 
 typedef struct hashtable {
-  set_t** table;
+  set_t **table;
   int size;
 } hashtable_t;
 
-hashtable_t*
-hashtable_new(const int num_slots)
-{
+hashtable_t *hashtable_new(const int num_slots) {
   if (num_slots <= 0) {
     return NULL;
   }
-  hashtable_t* htable = mem_malloc(sizeof(hashtable_t));
+  hashtable_t *htable = mem_malloc(sizeof(hashtable_t));
   if (htable == NULL) {
     return NULL;
   } else {
-    set_t** array = mem_malloc(num_slots * sizeof(set_t*));
+    set_t **array = mem_malloc(num_slots * sizeof(set_t *));
     for (int i = 0; i < num_slots; i++) {
       array[i] = set_new();
     }
@@ -40,9 +38,7 @@ hashtable_new(const int num_slots)
   }
 }
 
-bool
-hashtable_insert(hashtable_t* ht, const char* key, void* item)
-{
+bool hashtable_insert(hashtable_t *ht, const char *key, void *item) {
   if (ht != NULL && key != NULL && item != NULL) {
     int index = hash_jenkins(key, ht->size); // get index from hashing func
     return set_insert(ht->table[index], key, item); // insert it into set
@@ -51,9 +47,7 @@ hashtable_insert(hashtable_t* ht, const char* key, void* item)
   }
 }
 
-void*
-hashtable_find(hashtable_t* ht, const char* key)
-{
+void *hashtable_find(hashtable_t *ht, const char *key) {
   if (ht != NULL && key != NULL) {
     int index = hash_jenkins(key, ht->size);
     return set_find(ht->table[index], key);
@@ -62,13 +56,11 @@ hashtable_find(hashtable_t* ht, const char* key)
   }
 }
 
-void
-hashtable_print(hashtable_t* ht, FILE* fp,
-    void (*itemprint)(FILE* fp, const char* key, void* item))
-{
-  if (fp != NULL) { 
+void hashtable_print(hashtable_t *ht, FILE *fp,
+                     void (*itemprint)(FILE *fp, const char *key, void *item)) {
+  if (fp != NULL) {
     if (ht != NULL) {
-      set_t* set = NULL;
+      set_t *set = NULL;
       for (int i = 0; i < ht->size; i++) {
         set = ht->table[i];
         set_print(set, fp, itemprint);
@@ -80,12 +72,11 @@ hashtable_print(hashtable_t* ht, FILE* fp,
   }
 }
 
-void
-hashtable_iterate(hashtable_t* ht, void* arg,
-    void (*itemfunc)(void* arg, const char* key, void* item))
-{
-  if (ht!= NULL && itemfunc != NULL) {
-    set_t* set = NULL;
+void hashtable_iterate(hashtable_t *ht, void *arg,
+                       void (*itemfunc)(void *arg, const char *key,
+                                        void *item)) {
+  if (ht != NULL && itemfunc != NULL) {
+    set_t *set = NULL;
     for (int i = 0; i < ht->size; i++) {
       set = ht->table[i];
       set_iterate(set, arg, itemfunc);
@@ -93,11 +84,9 @@ hashtable_iterate(hashtable_t* ht, void* arg,
   }
 }
 
-void
-hashtable_delete(hashtable_t* ht, void (*itemdelete)(void* item))
-{
+void hashtable_delete(hashtable_t *ht, void (*itemdelete)(void *item)) {
   if (ht != NULL) {
-    set_t* set = NULL;
+    set_t *set = NULL;
     for (int i = 0; i < ht->size; i++) {
       set = ht->table[i];
       set_delete(set, itemdelete);

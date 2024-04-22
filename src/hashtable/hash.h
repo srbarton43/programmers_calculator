@@ -3,7 +3,7 @@
  *
  * Implementation details can be found at:
  *     http://www.burtleburtle.net/bob/hash/doobs.html
- * ========================================================================= 
+ * =========================================================================
  */
 
 #ifndef HASH_H
@@ -14,8 +14,8 @@
  * str: char buffer to hash (non-NULL)
  * mod: desired hash modulus (>0)
  *
- * Returns hash(str) % mod. 
+ * Returns hash(str) % mod.
  */
-unsigned long hash_jenkins(const char* str, const unsigned long mod);
+unsigned long hash_jenkins(const char *str, const unsigned long mod);
 
 #endif // HASH_H
