@@ -263,7 +263,6 @@ int hex2binary(const char *hex, char *binary, int wordsize) {
       return ERROR;
     }
     for (int i = 0; i < 4; i++) {
-      printf("hp=%d, nVal=%d, bp=%d\n", hexPointer, nibbleVal, bitPointer);
       if (hexPointer < 0 && nibbleVal == 0) {
 #ifdef DEBUG
         printf("hit MSB of bit string on MSN\n");
