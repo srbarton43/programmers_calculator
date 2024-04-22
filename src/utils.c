@@ -108,6 +108,9 @@ char *nums_add_string(program_data_t *prog_data, const char *number,
       break;
     case DECIMAL:
       decimal = atol(chopped);
+      printf("dec: %lu\n", decimal);
+      if (decimal >= 1 << (prog_data->wordsize - 1))
+        printf("Warning: invalid decimal number for current wordsize\n");
       if (ERROR == dec2binary(decimal, key, prog_data->wordsize)) {
 #ifdef DEBUG
         printf("%s: decimal number larger than wordsize\n", __FUNCTION__);
