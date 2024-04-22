@@ -451,12 +451,17 @@ number_t* add(number_t* a, number_t* b, int wordsize) {
     }
   }
   calcLength(sum);
+  global_nums_flag.sign = sum->bits[0] == '1';
+  global_nums_flag.overflow = (sum->bits[0] == '1' && a->bits[0] == '0' && b->bits[0] == '0')
+      || (sum->bits[0] == '0' && a->bits[0] == '1' && b->bits[0] == '1');
   return sum;
 }
 
 number_t* sub (number_t* a, number_t* b, int wordsize) {
   number_t* neg_a = twos_comp(a, max(b->wordsize, a->wordsize));
   number_t* sum = add(b, neg_a, wordsize);
+  //global_nums_flag.overflow = (sum->bits[0] == '1' && a->bits[0] == '0' && b->bits[0] == '1')
+  //    || (sum->bits[0] == '0' && a->bits[0] == '1' && b->bits[0] == '0');
 
   delete_number(neg_a);
 

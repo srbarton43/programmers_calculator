@@ -118,6 +118,8 @@ expression: number
               number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               free($1); free($3);
               char* key = nums_add_number(prog_data, num);
+              if (global_nums_flag.overflow)
+                printf("There was an overflow\n");
               $$ = key;                                     
             }
           | expression '-' expression 
@@ -128,6 +130,8 @@ expression: number
               number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
               free($3); free($1);
               char* key = nums_add_number(prog_data, num);
+              if (global_nums_flag.overflow)
+                printf("There was an underflow\n");
               $$ = key;
             }
           | expression RSHIFT number  
