@@ -244,7 +244,7 @@ int dec2binary(unsigned long long decimal, char* binary, int wordsize) {
 
 int hex2binary(const char* hex, char* binary, int wordsize) {
   if (hex == NULL) {
-    fprintf(stderr, "hex2binary: null hexstring passed\n");
+    printf("hex2binary: null hexstring passed\n");
     return ERROR;
   }
   char bitstring[wordsize + 1];
@@ -259,11 +259,21 @@ int hex2binary(const char* hex, char* binary, int wordsize) {
     } else if (nibble >= '0' && nibble <= '9') {  // valid number
       nibbleVal = nibble - '0';
     } else {
-      perror("hex2binary: invalid hex char\n");
+      printf("hex2binary: invalid hex char\n");
       return ERROR;
     }
     for (int i = 0; i < 4; i++) {
+      printf("hp=%d, nVal=%d, bp=%d\n", hexPointer, nibbleVal, bitPointer);
+      if (hexPointer < 0 && nibbleVal == 0) {
+#ifdef DEBUG
+        printf("hit MSB of bit string on MSN\n");
+#endif
+        break;
+      }
       if (bitPointer < 0) { // number is huge
+#ifdef DEBUG
+        printf("number is too big\n");
+#endif
         return ERROR;
       }
       int rem = nibbleVal % 2;
