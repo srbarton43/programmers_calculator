@@ -17,7 +17,6 @@ int main (int argc, char* argv[]) {
   if (!fp) exit(1);
   
   while (fscanf(fp, "%s %s\n", hex, expected) == 2) {
-    printf("foo\n");
     ret = max(ret, test_hex2binary(hex, expected));
   }
     
