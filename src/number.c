@@ -52,7 +52,9 @@ number_t* new_number(type_e type, const char* number, int wordsize) {
         unsigned long decimal = atol(number);
         dec2binary(decimal, bits, wordsize);
         slen = strlen(bits);
+#ifdef DEBUG
         printf("slen: %d\n", slen);
+#endif
         int i;
         for (i = 1; i <= wordsize; i++) {
           if (i <= slen)
@@ -208,14 +210,17 @@ char* number_getHex(number_t* number) {
   return hex;
 }
 
-void dec2binary(unsigned long long decimal, char* binary, int wordsize) {
+int dec2binary(unsigned long long decimal, char* binary, int wordsize) {
   if (binary == NULL) {
     fprintf(stderr, "dec2binary: bitstring");
-    return;
+    return ERROR;
   }
-  char bits_reversed[65];
+  char bits_reversed[wordsize+1];
   int pointer = 0;
   while (decimal != 0) {
+    if (pointer >= wordsize) {
+      return ERROR;
+    }
     int rem = decimal % 2;
     bits_reversed[pointer] = rem + '0';
     pointer++;
@@ -234,12 +239,13 @@ void dec2binary(unsigned long long decimal, char* binary, int wordsize) {
   }
   bitstring[wordsize] = '\0';
   strcpy(binary, bitstring);
+  return SUCCESS;
 }
 
-void hex2binary(const char* hex, char* binary, int wordsize) {
+int hex2binary(const char* hex, char* binary, int wordsize) {
   if (hex == NULL) {
     fprintf(stderr, "hex2binary: null hexstring passed\n");
-    return;
+    return ERROR;
   }
   char bitstring[wordsize + 1];
   bitstring[wordsize] = 0;
@@ -254,9 +260,12 @@ void hex2binary(const char* hex, char* binary, int wordsize) {
       nibbleVal = nibble - '0';
     } else {
       perror("hex2binary: invalid hex char\n");
-      return;
+      return ERROR;
     }
     for (int i = 0; i < 4; i++) {
+      if (bitPointer < 0) { // number is huge
+        return ERROR;
+      }
       int rem = nibbleVal % 2;
       bitstring[bitPointer--] = rem + '0';
       nibbleVal = nibbleVal >> 1;
@@ -268,6 +277,7 @@ void hex2binary(const char* hex, char* binary, int wordsize) {
   //char* p = bitstring;
   //while (*p != 0 && *p == '0') p++;
   strcpy(binary, bitstring);
+  return SUCCESS;
 }
 
 void delete_number (number_t* number) {

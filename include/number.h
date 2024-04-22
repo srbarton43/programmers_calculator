@@ -176,7 +176,7 @@ char* number_getHex(number_t* number);
  * returns:
  *  none
  */
-void dec2binary(unsigned long long decimal, char* binary, int wordsize);
+int dec2binary(unsigned long long decimal, char* binary, int wordsize);
 
 /*             hex2binary               */
 /*
@@ -189,7 +189,7 @@ void dec2binary(unsigned long long decimal, char* binary, int wordsize);
  * returns:
  *    nothing
  */
-void hex2binary(const char* hex, char* binary, int wordsize);
+int hex2binary(const char* hex, char* binary, int wordsize);
 
 /********* ONE's COMPLEMENT****************/
 /*

@@ -81,8 +81,11 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
   if (strlen(chopped) < 1)
     strcpy(key, "0");
   else {
-    if (strlen(chopped) >= prog_data->wordsize) {
+    if (strlen(chopped) > prog_data->wordsize) {
+#ifdef DEBUG
       printf("%s: the number is larger than wordsize", __FUNCTION__);
+#endif
+      return NULL;
     }
     unsigned long decimal;
     char raw_hex[100];
@@ -98,11 +101,21 @@ char* nums_add_string(program_data_t* prog_data, const char* number, type_e type
         break;
       case DECIMAL:
         decimal = atol(chopped);
-        dec2binary(decimal, key, prog_data->wordsize);
+        if (ERROR == dec2binary(decimal, key, prog_data->wordsize)) {
+#ifdef DEBUG
+          printf("%s: decimal number larger than wordsize\n", __FUNCTION__);
+#endif
+          return NULL;
+        }
         break;
       case HEXADECIMAL:
         strcpy(raw_hex, chopped);
-        hex2binary(raw_hex, key, prog_data->wordsize);
+        if (ERROR == hex2binary(raw_hex, key, prog_data->wordsize)) {
+#ifdef DEBUG
+          printf("%s: hex number larger than wordsize\n", __FUNCTION__);
+#endif
+          return NULL;
+        }
 #ifdef DEBUG
         printf("raw_hex: %s\n", raw_hex);
         printf("hex key: %s\n", key);

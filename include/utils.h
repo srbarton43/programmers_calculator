@@ -11,6 +11,9 @@
 #define DEFAULT_WS 8 // the wordsize when pcalc starts
 #define VAR_NUM 26   // the number of vars (26 for each lcase char in alphabet)
 
+#define SUCCESS 0
+#define ERROR (-1)
+
 typedef struct program_data {
   hashtable_t* nums;
   int wordsize;
@@ -46,6 +49,7 @@ void free_program_data(program_data_t* prog_data);
  *    type_e type         := enum type of number 
  * returns:
  *    char* key           := bitstring used as key in ht
+ *    NULL                := if error
  * 
  * caller must:
  *    free return val at some point

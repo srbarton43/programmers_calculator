@@ -12,8 +12,6 @@
   int yylex(void);
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
-  
-  
 %}
 
 /* tokens */
@@ -50,8 +48,10 @@ line: EOL
 #ifdef DEBUG
         printf("line\n");
 #endif
-
-        if (strcmp("foo", $1) == 0) {
+        
+        if ($1 == NULL) {
+          printf("Error...\n");
+        } else if (strcmp("foo", $1) == 0) {
           // wsize change
         } else if (strcmp("bar", $1) == 0) {
           // var assignment
