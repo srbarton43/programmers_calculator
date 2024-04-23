@@ -4,11 +4,11 @@
 flex = find_program('flex', required : true)
 bison = find_program('bison', required : true)
 
-parser_prefix = '/'.join(meson.global_build_root(), 'parser')
+parser_prefix = meson.global_build_root() / 'parser'
 parser_src = '.'.join(parser_prefix, 'tab.c')
 run_command(bison, '-b', parser_prefix, '-d', 'parser.y', check : true)
 
-lexer = '/'.join(meson.global_build_root(), 'lexer.c')
+lexer = meson.global_build_root() / 'lexer.c'
 run_command(flex, '-o', lexer, 'lexer.l', check : true)
 
 src_files = files('main.c', 'number.c', 'utils.c', parser_src, lexer)
