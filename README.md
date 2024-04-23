@@ -18,6 +18,7 @@ Right now, there is the option from 4-bit to 64-bit wordsizes but 1048 bit words
 ## Building
 
 You must have the [meson build system](https://mesonbuild.com/) installed and the dependencies `flex` and `bison`.
+
 After installing run the command:
 
 ```sh
@@ -43,17 +44,17 @@ Currently there are no integration testing but that may change in the future.
 
 ## Internals
 
-This project uses `bison` and an LR grammar for parsing calulator expressions, and uses `flex` for the tokenization.
+This project uses `bison` and an LR grammar for parsing calculator expressions, and uses `flex` for the tokenization.
 They are both dependencies for building the project.
 Numbers are represented as `char` arrays of '1's and '0's. 
 The program stores a hashtable of recently-accessed numbers keyed by their bitstrings.
-Note that while two numbers can have the same value, if they have **different** wordsizes, they are **different** numbers.
+Note that while two numbers can have the same value, if they have *different* wordsizes, they are *different* numbers.
 
 ## Future Plans
 
-[] better grammar
-[] better error messages
-[] rotate operations
-[] 1024-bit wordsize
-[] RIIR
+- [ ] better grammar
+- [ ] better error messages
+- [ ] rotate operations
+- [ ] 1024-bit wordsize
+- [ ] RIIR
 
