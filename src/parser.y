@@ -9,16 +9,9 @@
   #include "number.h"
   #include "utils.h"
 
-  hashtable_t* ht;
-  
   int yylex(void);
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
-  
-  char* ht_add_string(const char* number, type_e type);
-  char* ht_add_number(number_t* number);
-  number_t* ht_get_num(const char* number);
-  
 %}
 
 /* tokens */
@@ -29,21 +22,24 @@
   int i_value;
 }
 
-%token <s_value> BIN DEC HEX VAR
-%token <i_value> QUIT ECHO_N EOL
-%type <c_value> '-' '+'
+%token <s_value> BIN DEC HEX
+%token <i_value> QUIT W_SIZE EOL
+%token <c_value> VAR
+%type <c_value> '-' '+' '~' '=' '&' '|'
 
 %type <s_value> number expression statement
 
-%left '+' '-'
+%left '|'
+%left '&'
 %left <i_value> LSHIFT RSHIFT
-%precedence NEG   /* negation--unary minus */
+%left '+' '-'
+%precedence NEG '~'   /* negation--unary minus and bitwise NOT */
 
 /*  grammar  */
 %%
 
 input: /*nothing*/
-     | input line
+     | input line { printf(">>> "); }
      ;
 
 line: EOL
@@ -52,6 +48,20 @@ line: EOL
 #ifdef DEBUG
         printf("line\n");
 #endif
+        
+        if ($1 == NULL || prog_data->poison) {
+          printf("Error...\n");
+        } else if (strcmp("foo", $1) == 0) {
+          // wsize change
+        } else if (strcmp("bar", $1) == 0) {
+          // var assignment
+        } else {
+          number_t* num = nums_get_num(prog_data, $1);
+          printf("  =\n");
+          number_print(num);
+          free($1);
+        }
+        prog_data->poison = 0;
       }
     | error EOL
     ;
@@ -60,34 +70,56 @@ statement: QUIT
             {
               YYACCEPT; // return from yyparse with 0 return code
             }
-         | ECHO_N number 
-            { 
-#ifdef DEBUG
-              printf("echoing %s\n", $2);
-#endif
-              number_t* num = ht_get_num($2);
-              number_print(num);
+         | W_SIZE
+            {
+              printf("The current wordsize is %d\n", prog_data->wordsize);
+              $$ = "foo";
             }
+         | W_SIZE number
+            {
+              long long new_wsize = number_getSdec(ten_bit_nums_get_num(prog_data, $2));
+              if (new_wsize < 4 || new_wsize > 64) {
+                printf("unsupported wordsize: %lld\n", new_wsize);
+              } else {
+                printf("changed wordsize to %lld\n", new_wsize);
+                prog_data->wordsize = new_wsize;
+              }
+              prog_data->poison = 0;
+              $$ = "foo";
+            }
+         | VAR '=' expression
+          {
+#ifdef DEBUG
+            printf("var assignment\n");
+#endif
+            vars_set_val(prog_data, $1, $3);
+            number_t* num = nums_get_num(prog_data, $3);
+            free($3);
+            printf("%c\n  = \n", $1);
+            number_print(num);
+            $$ = "bar";
+          }
          | expression 
             {
 #ifdef DEBUG
               printf("expression\n");
 #endif
-              number_t* num = ht_get_num($1);
-              printf("  =\n");
-              number_print(num);
+              $$ = $1;
             }
          ;
 
 expression: number
+          
           | expression '+' expression
             { 
 #ifdef DEBUG
               printf("adding\n");
 #endif
-              number_t* num = add(ht_get_num($1), ht_get_num($3));
-              //printf("result: \n"); number_print(num);
-              char* key = ht_add_number(num);
+              number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              free($1); free($3);
+              char* key = nums_add_number(prog_data, num);
+              if (global_nums_flag.overflow)
+                printf("There was an overflow\n");
               $$ = key;                                     
             }
           | expression '-' expression 
@@ -95,8 +127,11 @@ expression: number
 #ifdef DEBUG
               printf("subtracting\n");
 #endif
-              number_t* num = sub(ht_get_num($3), ht_get_num($1));
-              char* key = ht_add_number(num);
+              number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
+              free($3); free($1);
+              char* key = nums_add_number(prog_data, num);
+              if (global_nums_flag.overflow)
+                printf("There was an underflow\n");
               $$ = key;
             }
           | expression RSHIFT number  
@@ -104,8 +139,9 @@ expression: number
 #ifdef DEBUG
               printf("rshift\n"); 
 #endif
-              number_t* num = rshift(ht_get_num($1), ht_get_num($3));
-              char* key = ht_add_number(num);
+              number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              free($1); free($3);
+              char* key = nums_add_number(prog_data, num);
               $$ = key;
             }
           | expression LSHIFT number
@@ -113,9 +149,30 @@ expression: number
 #ifdef DEBUG
               printf("lshift\n");
 #endif
-              number_t* num = lshift(ht_get_num($1), ht_get_num($3));
+              number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              free($1); free($3);
               //printf("result: \n"); number_print(num);
-              char* key = ht_add_number(num);
+              char* key = nums_add_number(prog_data, num);
+              $$ = key;
+            }
+          | expression '&' expression
+            {
+#ifdef DEBUG
+              printf("and\n");
+#endif
+              number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              free($1); free($3);
+              char* key = nums_add_number(prog_data, num);
+              $$ = key;
+            }
+          | expression '|' expression
+            {
+#ifdef DEBUG
+              printf("or\n");
+#endif
+              number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              free($1); free($3);
+              char* key = nums_add_number(prog_data, num);
               $$ = key;
             }
           | '-' expression %prec NEG
@@ -123,9 +180,24 @@ expression: number
 #ifdef DEBUG
               printf("negation\n");
 #endif
-              number_t* num = twos_comp(ht_get_num($2), 0);
-              char* key = ht_add_number(num);
+              number_t* num = twos_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
+              free($2);
+              char* key = nums_add_number(prog_data, num);
               $$ = key;
+            }
+          | '~' expression
+            {
+#ifdef DEBUG
+              printf("bitwise NOT\n");
+#endif
+              number_t* num = ones_comp(nums_get_num(prog_data, $2), 0);
+              free($2);
+              char* key = nums_add_number(prog_data, num);
+              $$ = key;
+            }
+          | '(' expression ')'
+            {
+              $$ = $2;
             }
           ;
 
@@ -134,15 +206,21 @@ number: DEC
 #ifdef DEBUG
           printf("decimal\n");
 #endif
-          char* key = ht_add_string($1, DECIMAL);
-          $$ = key;
+          char *ten_bit_key = ten_bit_nums_add_string(prog_data, $1);
+          char* key = nums_add_string(prog_data, $1, DECIMAL);
+          if (key) {
+            $$ = key;
+          } else {
+            $$ = ten_bit_key;
+            prog_data->poison = 1;
+          }
         }
       | HEX
         {
 #ifdef DEBUG
           printf("hex\n");
 #endif
-          char* key = ht_add_string($1, HEXADECIMAL);
+          char* key = nums_add_string(prog_data, $1, HEXADECIMAL);
           $$ = key;
         }
       | BIN
@@ -150,7 +228,15 @@ number: DEC
 #ifdef DEBUG
           printf("binary\n");
 #endif
-          char* key = ht_add_string($1, BINARY);
+          char* key = nums_add_string(prog_data, $1, BINARY);
+          $$ = key;
+        }
+      | VAR 
+        {
+#ifdef DEBUG
+          printf("variable %c\n", $1);
+#endif
+          char* key = vars_get_val(prog_data, $1);
           $$ = key;
         }
       ;
@@ -166,103 +252,4 @@ void yyerror(const char* str, ...)
   vfprintf (stderr, str, args);
   fprintf (stderr, "\n");
   va_end (args);
-}
-
-
-/*
- * ht_add_string - adds bitstring->number pair to ht
- * 
- * params:
- *    const char* number  := string representing number
- *    type_e type         := enum type of number 
- * returns:
- *    char* key           := bitstring used as key in ht
- * 
- * caller must:
- *    free return val at some point
- */
-char* ht_add_string(const char* number, type_e type) {
-  
-  // get the binary key associated with the number
-  char* key = malloc(100*sizeof(char)); // TODO free this memory later
-  const char* chopped = number;
-  // chop off leading zeroes and hex signifier
-  while(chopped != 0 && (*chopped == '0' || *chopped == 'x')) chopped++; 
-  if (strlen(chopped) < 1)
-    strcpy(key, "0");
-  else {
-    unsigned long decimal;
-    char raw_hex[100];
-    switch (type) {
-      case BINARY:
-        strcpy(key, chopped);
-        break;
-      case DECIMAL:
-        decimal = atol(chopped);
-        dec2binary(decimal, key);
-        break;
-      case HEXADECIMAL:
-        strcpy(raw_hex, chopped);
-        printf("raw_hex: %s\n", raw_hex);
-        hex2binary(raw_hex, key);
-        printf("hex key: %s\n", key);
-        break;
-      default:
-        printf("error\n");
-        yyerror("key is bad");
-        return NULL;
-    }
-#ifdef DEBUG
-    bool ret = 
-#endif     
-    if(!hashtable_find(ht, key))
-      hashtable_insert(ht, key, new_number(type, chopped, WORDSIZE));
-#ifdef DEBUG
-    if (!ret) printf("%s already in ht\n", key);
-#endif
-  }
-  
-  return key; 
-}
- 
-/*
- * ht_add_number - adds bitstring->number pair to ht
- * 
- * params:
- *    number_t* number  := string representing number
- * returns:
- *    char* key         := bitstring used as key in ht
- * 
- * caller must:
- *    free return val at some point
- */ 
-char* ht_add_number(number_t* number) {
-  char* key = malloc(100*sizeof(char)); // TODO free this later
-  if (numbers_are_equal(number, _zero_)) {
-    strcpy(key, "0");
-    return key;
-  }
-  int i = 0;
-  for(; i < number->len; i++) {
-    key[i] = number->bits[i + number->wordsize - number->len];
-  }
-  key[i] = 0;
-  hashtable_insert(ht, key, number);
-  return key;
-}
-
-/*
- * ht_get_num - gets number from hashtable
- * 
- * params:
- *    const char* number  := bitstring as key
- * returns:
- *    number_t* num       := pointer to the number
- */
-number_t* ht_get_num(const char* number) {
-  number_t* num = hashtable_find(ht, number);
-  if(!num) {
-    printf("this shouldnt happen\n");
-  }
-  return num;
 }
