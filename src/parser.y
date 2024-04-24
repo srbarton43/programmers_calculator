@@ -190,7 +190,7 @@ expression: number
 #ifdef DEBUG
               printf("bitwise NOT\n");
 #endif
-              number_t* num = ones_comp(nums_get_num(prog_data, $2), 0);
+              number_t* num = ones_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
               free($2);
               char* key = nums_add_number(prog_data, num);
               $$ = key;
