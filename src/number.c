@@ -16,7 +16,7 @@ static void printBits(number_t *num);
 static void print_u64(u64 num, int wordsize);
 static int bits_to_u64(const char *bitstring, int wordsize, u64 *out);
 static int hex_to_u64(const char *hexstring, int wordsize, u64 *out);
-static u8 get_nibble_val(char c);
+static u64 get_nibble_val(char c);
 
 number_t *new_number(type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -27,6 +27,7 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
   new_num->wordsize = wordsize;
   new_num->len = 0;
   new_num->bits = malloc(wordsize * sizeof(char));
+  new_num->num = 0;
   // zero bits
   for (int i = 0; i < wordsize; i++) {
     new_num->bits[i] = '0';
@@ -125,12 +126,11 @@ static int hex_to_u64(const char *hexstring, int wordsize, u64 *out) {
   u64 num = 0;
   int i = 0;
   int slen = strlen(hexstring);
-  u8 nibble = 0;
+  u64 nibble = 0;
 
   for (i = 1; i <= slen && i <= wordsize; i++) {
     nibble = get_nibble_val(hexstring[slen - i]);
-    printf("%s: nibble=%x\n", __FUNCTION__, nibble);
-    num |= nibble << 4*(i - 1);
+    num |= nibble << (u64)(4ULL*((u64)i - 1ULL));
   }
 
   if (i < slen) {
@@ -142,7 +142,7 @@ static int hex_to_u64(const char *hexstring, int wordsize, u64 *out) {
   return SUCCESS;
 }
 
-static u8 get_nibble_val(char c) {
+static u64 get_nibble_val(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
   else if (c >= 'a' && c <= 'f')
@@ -384,6 +384,7 @@ void number_print(number_t *number) {
   printf("\n");
   printf("Integer Value: %lld\n", number_getSdec(number));
   printf("Unsigned Integer Value: %llu\n", number_getUdec(number));
+  printf("Unsigned Integer Value: %llu\n", number->num);
   char *hex = number_getHex(number);
   printf("Hexadecimal Value: %s\n", hex);
   free(hex);
@@ -392,8 +393,7 @@ void number_print(number_t *number) {
 
 static void print_u64(u64 num, int wordsize) {
   for (int i = 1; i <= wordsize; i++) {
-    u64 mask = 1 << (wordsize - i);
-    //printf("%s: char=%d\n", __FUNCTION__, (num & mask) > 0);
+    u64 mask = 1ULL << (u64)(wordsize - i);
     printf("%c", '0' + ((num & mask) > 0));
   }
 }
