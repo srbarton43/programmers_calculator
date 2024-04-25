@@ -8,6 +8,8 @@
 #include "number.h"
 #include "utils.h"
 
+#define MASK ((1ULL << wordsize) - 1)
+
 number_t *_zero_;
 number_t *_one_;
 
@@ -452,7 +454,7 @@ number_t *copy_number(number_t *number, int wordsize) {
     new_num->wordsize = wordsize;
   new_num->len = min(number->len, new_num->wordsize);
   new_num->bits = malloc(sizeof(char) * (new_num->wordsize + 1));
-  new_num->num = number->num;
+  new_num->num = number->num & MASK;
   for (int i = 1; i <= new_num->wordsize; i++)
     if (i <= number->wordsize)
       new_num->bits[new_num->wordsize - i] = number->bits[number->wordsize - i];
@@ -488,8 +490,7 @@ number_t *ones_comp(number_t *num, int wordsize) {
       ones->bits[ones->wordsize - i] = '1';
   }
   calcLength(ones);
-  u64 mask = (1ULL << wordsize) - 1;
-  ones->num = ~num->num & mask;
+  ones->num = ~num->num & MASK;
   return ones;
 }
 number_t *twos_comp(number_t *num, int wordsize) {
@@ -503,8 +504,7 @@ number_t *twos_comp(number_t *num, int wordsize) {
   // cleanup
   delete_number(ones);
 
-  u64 mask = (1ULL << wordsize) - 1;
-  twos->num = ~num->num + 1 & mask;
+  twos->num = ~num->num + 1 & MASK;
 
   return twos;
 }
@@ -557,6 +557,7 @@ number_t *add(number_t *a, number_t *b, int wordsize) {
     }
   }
   calcLength(sum);
+  sum->num = a->num + b->num & MASK;
   global_nums_flag.sign = sum->bits[0] == '1';
   global_nums_flag.overflow =
       (sum->bits[0] == '1' && a->bits[0] == '0' && b->bits[0] == '0') ||
@@ -590,6 +591,7 @@ number_t *lshift(number_t *number, number_t *positions, int wordsize) {
   for (; i < number->wordsize; i++)
     new[i] = '0';
   calcLength(new_num);
+  new_num->num = number->num << positions->num & MASK;
   return new_num;
 }
 
@@ -619,6 +621,7 @@ number_t *rshift(number_t *number, number_t *positions, int wordsize) {
     new[i] = old[i - pos];
   // calculate new length
   calcLength(new_num);
+  new_num->num = number->num >> positions->num & MASK;
   return new_num;
 }
 
@@ -632,6 +635,7 @@ number_t * and (number_t * a, number_t *b, int wordsize) {
         (a->bits[aWs - i] == '1' && b->bits[bWs - i] == '1') + '0';
   }
   calcLength(num);
+  num->num = a->num & b->num & MASK;
   return num;
 }
 
@@ -645,6 +649,7 @@ number_t * or (number_t * a, number_t *b, int wordsize) {
         (a->bits[aWs - i] == '1' || b->bits[bWs - i] == '1') + '0';
   }
   calcLength(num);
+  num->num = (a->num | b->num) & MASK;
   return num;
 }
 
