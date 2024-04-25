@@ -14,6 +14,7 @@ number_t *_one_;
 static void calcLength(number_t *number);
 static void printBits(number_t *num);
 static void print_u64(u64 num, int wordsize);
+static int bits_to_u64(const char *bitstring, int wordsize, u64 *out);
 
 number_t *new_number(type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -45,6 +46,8 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
       }
       if (i <= slen)
         printf("binary bigger than wordsize\n");
+
+      bits_to_u64(number, wordsize, &new_num->num);
 
       break;
     }
@@ -95,6 +98,24 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
     i--;
   }
   return new_num;
+}
+
+static int bits_to_u64(const char *bitstring, int wordsize, u64 *out) {
+  u64 num = 0;
+  int slen = strlen(bitstring);
+  
+  int i;
+  for (i = 1; i <= wordsize; i++) {
+    if (i <= slen)
+      num |= (bitstring[slen - i] - '0') << (i-1);
+  }
+  if (i <= slen) {
+    printf("binary bigger than wordsize\n");
+    return ERROR;
+  }
+
+  *out = num;
+  return SUCCESS;
 }
 
 void change_wordsize(number_t *num, int wordsize) {
