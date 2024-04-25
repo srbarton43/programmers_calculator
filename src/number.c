@@ -13,6 +13,7 @@ number_t *_one_;
 
 static void calcLength(number_t *number);
 static void printBits(number_t *num);
+static void print_u64(u64 num, int wordsize);
 
 number_t *new_number(type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -49,6 +50,7 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
     }
     case DECIMAL: {
       unsigned long decimal = atol(number);
+      new_num->num = atoll(number);
       dec2binary(decimal, bits, wordsize);
       slen = strlen(bits);
 #ifdef DEBUG
@@ -326,7 +328,17 @@ void number_print(number_t *number) {
   char *hex = number_getHex(number);
   printf("Hexadecimal Value: %s\n", hex);
   free(hex);
+  printf("u64: ");
+  print_u64(number->num, number->wordsize);
+  printf("\n");
   printf("--------------\n");
+}
+
+static void print_u64(u64 num, int wordsize) {
+  for (int i = 1; i <= wordsize; i++) {
+    u64 mask = 1 << (wordsize - i);
+    printf("%c", '0' + (int)((num & mask) >> (wordsize - i)));
+  }
 }
 
 static void printBits(number_t *num) {

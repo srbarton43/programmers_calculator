@@ -2,12 +2,17 @@
 #ifndef __NUMBER_H
 #define __NUMBER_H
 
+#include <stdint.h>
+
+typedef uint64_t u64;
+
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
 typedef struct number {
   int wordsize; // max wordsize for the bitstring
   int len;      // actual length of bitstring
   char *bits;   // non null-terminated bitstring
+  u64 num;
 } number_t;
 
 typedef struct num_flags {
