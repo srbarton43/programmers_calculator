@@ -278,6 +278,25 @@ char *number_getHex(number_t *number) {
   return hex;
 }
 
+char *number_getHex_u64(number_t *number) {
+  u64 num = number->num;
+  int ws = number->wordsize;
+  char* hex = calloc(ws/4 + 3, sizeof(char));
+  u64 nibble = 0;
+  int np = ws % 4 == 0 ? ws/4-1 : ws/4;
+  int hp = 2;
+  for (; np >= 0; np--) {
+    nibble = (0xf << (np*4) & num) >> (np*4);
+    if (nibble > 9)
+      hex[hp++] = 'a' + nibble - 10;
+    else
+      hex[hp++] = '0' + nibble;
+  }
+  hex[0] = '0';
+  hex[1] = 'x';
+  return hex;
+}
+
 int dec2binary(unsigned long long decimal, char *binary, int wordsize) {
   if (binary == NULL) {
     fprintf(stderr, "dec2binary: bitstring");
@@ -399,6 +418,9 @@ void number_print(number_t *number) {
   char *hex = number_getHex(number);
   printf("Hexadecimal Value: %s\n", hex);
   free(hex);
+  char *hex_u64 = number_getHex_u64(number);
+  printf("Hexadecimal Value: %s\n", hex_u64);
+  free(hex_u64);
   printf("--------------\n");
 }
 
