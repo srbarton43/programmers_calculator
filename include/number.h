@@ -160,6 +160,7 @@ unsigned long long number_getUdec(number_t *number);
  */
 signed long long number_getSdec(number_t *number);
 
+int64_t number_getSdec_u64(number_t *number);
 /*
  * number_getHex
  *

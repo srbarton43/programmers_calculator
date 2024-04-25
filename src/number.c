@@ -233,6 +233,16 @@ signed long long number_getSdec(number_t *num) {
   return value;
 }
 
+int64_t number_getSdec_u64(number_t *number) {
+  int ws = number->wordsize;
+  u64 num = number->num;
+  if ((num & (1ULL << (ws - 1ULL))) < 1ULL)
+    return (int64_t) num;
+  u64 mask = (1ULL << (ws-1)) - 1ULL;
+  int64_t ret = - (1ULL << (ws - 1ULL)) + (num & mask);
+  return ret;
+}
+
 char *number_getHex(number_t *number) {
   if (numbers_are_equal(_zero_, number)) {
     char *hex = malloc(sizeof("0x0\0"));
@@ -383,6 +393,7 @@ void number_print(number_t *number) {
   print_u64(number->num, number->wordsize);
   printf("\n");
   printf("Integer Value: %lld\n", number_getSdec(number));
+  printf("Integer Value: %lld\n", number_getSdec_u64(number));
   printf("Unsigned Integer Value: %llu\n", number_getUdec(number));
   printf("Unsigned Integer Value: %llu\n", number->num);
   char *hex = number_getHex(number);
