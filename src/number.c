@@ -15,6 +15,8 @@ static void calcLength(number_t *number);
 static void printBits(number_t *num);
 static void print_u64(u64 num, int wordsize);
 static int bits_to_u64(const char *bitstring, int wordsize, u64 *out);
+static int hex_to_u64(const char *hexstring, int wordsize, u64 *out);
+static u8 get_nibble_val(char c);
 
 number_t *new_number(type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -71,6 +73,7 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
       break;
     }
     case HEXADECIMAL: {
+      hex_to_u64(number, wordsize, &new_num->num);
       char bits[65];
       hex2binary(number, bits, wordsize);
 #ifdef DEBUG
@@ -103,11 +106,11 @@ number_t *new_number(type_e type, const char *number, int wordsize) {
 static int bits_to_u64(const char *bitstring, int wordsize, u64 *out) {
   u64 num = 0;
   int slen = strlen(bitstring);
-  
+
   int i;
   for (i = 1; i <= wordsize; i++) {
     if (i <= slen)
-      num |= (bitstring[slen - i] - '0') << (i-1);
+      num |= (bitstring[slen - i] - '0') << (i - 1);
   }
   if (i <= slen) {
     printf("binary bigger than wordsize\n");
@@ -116,6 +119,38 @@ static int bits_to_u64(const char *bitstring, int wordsize, u64 *out) {
 
   *out = num;
   return SUCCESS;
+}
+
+static int hex_to_u64(const char *hexstring, int wordsize, u64 *out) {
+  u64 num = 0;
+  int i = 0;
+  int slen = strlen(hexstring);
+  u8 nibble = 0;
+
+  for (i = 1; i <= slen && i <= wordsize; i++) {
+    nibble = get_nibble_val(hexstring[slen - i]);
+    printf("%s: nibble=%x\n", __FUNCTION__, nibble);
+    num |= nibble << 4*(i - 1);
+  }
+
+  if (i < slen) {
+    printf("hex bigger than wordsize\n");
+    return ERROR;
+  }
+
+  *out = num;
+  return SUCCESS;
+}
+
+static u8 get_nibble_val(char c) {
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  else if (c >= 'a' && c <= 'f')
+    return c - 'a' + 10;
+  else if (c >= 'A' && c <= 'F')
+    return c - 'A' + 10;
+  else
+    return 0;
 }
 
 void change_wordsize(number_t *num, int wordsize) {
@@ -340,25 +375,26 @@ void number_print(number_t *number) {
 #endif
   // printf("BITSTRING "); printBits(number); printf("\n");
   char *bs = number->bits;
-  printf("BITSTRING ");
+  printf("BITSTRING: ");
   for (int i = 0; i < number->wordsize; i++)
     printf("%c", bs[i]);
+  printf("\n");
+  printf("      u64: ");
+  print_u64(number->num, number->wordsize);
   printf("\n");
   printf("Integer Value: %lld\n", number_getSdec(number));
   printf("Unsigned Integer Value: %llu\n", number_getUdec(number));
   char *hex = number_getHex(number);
   printf("Hexadecimal Value: %s\n", hex);
   free(hex);
-  printf("u64: ");
-  print_u64(number->num, number->wordsize);
-  printf("\n");
   printf("--------------\n");
 }
 
 static void print_u64(u64 num, int wordsize) {
   for (int i = 1; i <= wordsize; i++) {
     u64 mask = 1 << (wordsize - i);
-    printf("%c", '0' + (int)((num & mask) >> (wordsize - i)));
+    //printf("%s: char=%d\n", __FUNCTION__, (num & mask) > 0);
+    printf("%c", '0' + ((num & mask) > 0));
   }
 }
 
