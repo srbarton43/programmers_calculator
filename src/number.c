@@ -430,6 +430,7 @@ number_t *copy_number(number_t *number, int wordsize) {
     new_num->wordsize = wordsize;
   new_num->len = min(number->len, new_num->wordsize);
   new_num->bits = malloc(sizeof(char) * (new_num->wordsize + 1));
+  new_num->num = number->num;
   for (int i = 1; i <= new_num->wordsize; i++)
     if (i <= number->wordsize)
       new_num->bits[new_num->wordsize - i] = number->bits[number->wordsize - i];
@@ -465,6 +466,8 @@ number_t *ones_comp(number_t *num, int wordsize) {
       ones->bits[ones->wordsize - i] = '1';
   }
   calcLength(ones);
+  u64 mask = (1ULL << wordsize) - 1;
+  ones->num = ~num->num & mask;
   return ones;
 }
 number_t *twos_comp(number_t *num, int wordsize) {
@@ -477,6 +480,9 @@ number_t *twos_comp(number_t *num, int wordsize) {
 
   // cleanup
   delete_number(ones);
+
+  u64 mask = (1ULL << wordsize) - 1;
+  twos->num = ~num->num + 1 & mask;
 
   return twos;
 }
