@@ -689,12 +689,9 @@ int isEqualToBitstring(number_t *n, char *s) {
   // check if they are both zero
   if (len == 1 && s[0] == '0' && n->len == 0)
     return 0;
-  if (len != n->len) {
-    printf("%d\n", __LINE__);
-    return 1;
-  }
-  for (int i = 1; i <= n->len; i++) {
-    if (n->bits[n->wordsize - i] != s[len - i]) {
+
+  for (int i = 1; i <= len; i++) {
+    if ((n->num & (1ULL << (i-1))) >> (i-1ULL) != s[len - i] - '0') {
       printf("%d\n", __LINE__);
       return 1;
     }
@@ -899,14 +896,17 @@ int test_or(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   printf("a = ");
   printBits(a);
   printf("\n");
+  number_print(a);
   printf("b = ");
   printBits(b);
   printf("\n");
+  number_print(b);
   printf("expected a|b = %s\n", expected);
   number_t *ored = or (a, b, ws);
   printf("actual a|b = ");
   printBits(ored);
   printf("\n");
+  number_print(ored);
   int ret = isEqualToBitstring(ored, expected);
   if (!ret)
     printf("Test Passed!\n");
