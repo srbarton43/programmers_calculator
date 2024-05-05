@@ -8,18 +8,19 @@ Right now, there is the option from 4-bit to 64-bit wordsizes but 1048 bit words
 
 ## Calculator Features
 
-- Arithmetic ('+', '-')
+- Arithmetic (`+`, `-`)
 - Parentheses
-- Bitwise Operations ('&', '|', '~')
-- Logical Shifts ('>>', '<<')
+- Bitwise Operations (`&`, `|`, `~`)
+- Logical Shifts (`>>`, `<<`)
 - Variable Assignment (`a=3+4`)
 - Changing Wordsize (`ws [wordsize]`)
+- Printing Wordsize (`ws`)
 
 ## Building
 
 You must have the [meson build system](https://mesonbuild.com/) installed and the dependencies `flex` and `bison`.
 
-After installing run the command:
+After installing the dependencies run the command:
 
 ```sh
 meson setup [build_dir] && cd [build_dir] && ninja
@@ -41,20 +42,18 @@ meson test
 
 Currently there are no integration testing but that may change in the future.
 
-
 ## Internals
 
 This project uses `bison` and an LR grammar for parsing calculator expressions, and uses `flex` for the tokenization.
 They are both dependencies for building the project.
-Numbers are represented as `char` arrays of '1's and '0's. 
-The program stores a hashtable of recently-accessed numbers keyed by their bitstrings.
-Note that while two numbers can have the same value, if they have *different* wordsizes, they are *different* numbers.
+Each number is represented as a u64 number and its wordsize.
+The wordsize is vital for all operations involving two's complement, and for tracking overflows/invalid numbers.
+Note that while two numbers can have the same value, if they have _different_ wordsizes, they are _different_ numbers.
 
 ## Future Plans
 
 - [ ] better grammar
-- [ ] better error messages
+- [ ] better error messages (especially regarding overflows and OOB)
 - [ ] rotate operations
-- [ ] 1024-bit wordsize
+- [ ] 1024-bit wordsize (by storing array of u64)
 - [ ] RIIR
-
