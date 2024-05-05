@@ -4,7 +4,7 @@
   #include <stdarg.h>
   #include <stdbool.h>
   #include <string.h>
-  
+
   #include "hashtable.h"
   #include "number.h"
   #include "utils.h"
@@ -12,12 +12,14 @@
   int yylex(void);
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
+
 %}
 
 /* tokens */
 
 %union {
-  char* s_value;
+  char *s_value;
+  number_t n_value;
   char c_value;
   int i_value;
 }
@@ -27,7 +29,7 @@
 %token <c_value> VAR
 %type <c_value> '-' '+' '~' '=' '&' '|'
 
-%type <s_value> number expression statement
+%type <n_value> number expression statement
 
 %left '|'
 %left '&'
@@ -43,25 +45,30 @@ input: /*nothing*/
      ;
 
 line: EOL
-    | statement EOL 
+    | statement EOL
       {
 #ifdef DEBUG
         printf("line\n");
 #endif
-        
-        if ($1 == NULL || prog_data->poison) {
+
+        if (prog_data->poison) {
           printf("Error...\n");
-        } else if (strcmp("foo", $1) == 0) {
+        } else if (1 == prog_data->buf_overflow_check) {
+          printf("Error: More numbers than the program can handle\n");
+        } else if (6 == prog_data->status) {
           // wsize change
-        } else if (strcmp("bar", $1) == 0) {
+        } else if (5 == prog_data->status) {
           // var assignment
+        } else if (-1 == prog_data->status) {
+          printf("Error: TODO make this message better\n");
         } else {
-          number_t* num = nums_get_num(prog_data, $1);
           printf("  =\n");
-          number_print(num);
-          free($1);
+          number_print(&$1);
         }
         prog_data->poison = 0;
+        prog_data->status = 0;
+        prog_data->nbuf_ptr = 0;
+        prog_data->buf_overflow_check = 0;
       }
     | error EOL
     ;
@@ -73,11 +80,11 @@ statement: QUIT
          | W_SIZE
             {
               printf("The current wordsize is %d\n", prog_data->wordsize);
-              $$ = "foo";
+              prog_data->status = 6;
             }
          | W_SIZE number
             {
-              long long new_wsize = number_getSdec(ten_bit_nums_get_num(prog_data, $2));
+              long long new_wsize = $2.num;
               if (new_wsize < 4 || new_wsize > 64) {
                 printf("unsupported wordsize: %lld\n", new_wsize);
               } else {
@@ -85,21 +92,20 @@ statement: QUIT
                 prog_data->wordsize = new_wsize;
               }
               prog_data->poison = 0;
-              $$ = "foo";
+              prog_data->status = 6;
             }
          | VAR '=' expression
           {
 #ifdef DEBUG
             printf("var assignment\n");
 #endif
-            vars_set_val(prog_data, $1, $3);
-            number_t* num = nums_get_num(prog_data, $3);
-            free($3);
+            //vars_set_val(prog_data, $1, $3);
+            vars_set_num(prog_data, $1, &$3);
             printf("%c\n  = \n", $1);
-            number_print(num);
-            $$ = "bar";
+            number_print(&$3);
+            prog_data->status = 5;
           }
-         | expression 
+         | expression
             {
 #ifdef DEBUG
               printf("expression\n");
@@ -109,91 +115,132 @@ statement: QUIT
          ;
 
 expression: number
-          
+
           | expression '+' expression
-            { 
+            {
 #ifdef DEBUG
               printf("adding\n");
 #endif
-              number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              free($1); free($3);
-              char* key = nums_add_number(prog_data, num);
+              //number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              add(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               if (global_nums_flag.overflow)
                 printf("There was an overflow\n");
-              $$ = key;                                     
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
-          | expression '-' expression 
-            { 
+          | expression '-' expression
+            {
 #ifdef DEBUG
               printf("subtracting\n");
 #endif
-              number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
-              free($3); free($1);
-              char* key = nums_add_number(prog_data, num);
+              //number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
+              //char* key = nums_add_number(prog_data, num);
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              sub(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$3, &$1, prog_data->wordsize);
               if (global_nums_flag.overflow)
                 printf("There was an underflow\n");
-              $$ = key;
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
-          | expression RSHIFT number  
-            { 
+          | expression RSHIFT number
+            {
 #ifdef DEBUG
-              printf("rshift\n"); 
+              printf("rshift\n");
 #endif
-              number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              free($1); free($3);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              //free($1); free($3);
+              //char* key = nums_add_number(prog_data, num);
+              //$$ = key;
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              rshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | expression LSHIFT number
             {
 #ifdef DEBUG
               printf("lshift\n");
 #endif
-              number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              free($1); free($3);
+              //number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              //free($1); free($3);
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              lshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               //printf("result: \n"); number_print(num);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //char* key = nums_add_number(prog_data, num);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | expression '&' expression
             {
 #ifdef DEBUG
               printf("and\n");
 #endif
-              number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              free($1); free($3);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              //free($1); free($3);
+              //char* key = nums_add_number(prog_data, num);
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              and(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | expression '|' expression
             {
 #ifdef DEBUG
               printf("or\n");
 #endif
-              number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              free($1); free($3);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
+              //free($1); free($3);
+              //char* key = nums_add_number(prog_data, num);
+              //$$ = key;
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              or(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | '-' expression %prec NEG
             {
 #ifdef DEBUG
               printf("negation\n");
 #endif
-              number_t* num = twos_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
-              free($2);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //number_t* num = twos_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
+              //free($2);
+              //char* key = nums_add_number(prog_data, num);
+              //$$ = key;
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              twos_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | '~' expression
             {
 #ifdef DEBUG
               printf("bitwise NOT\n");
 #endif
-              number_t* num = ones_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
-              free($2);
-              char* key = nums_add_number(prog_data, num);
-              $$ = key;
+              //number_t* num = ones_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
+              //free($2);
+              //char* key = nums_add_number(prog_data, num);
+              //$$ = key;
+              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+                prog_data->nbuf_ptr--;
+                prog_data->buf_overflow_check = 1;
+              }
+              ones_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
+              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
           | '(' expression ')'
             {
@@ -201,43 +248,67 @@ expression: number
             }
           ;
 
-number: DEC 
+number: DEC
         {
 #ifdef DEBUG
           printf("decimal\n");
 #endif
-          char *ten_bit_key = ten_bit_nums_add_string(prog_data, $1);
-          char* key = nums_add_string(prog_data, $1, DECIMAL);
-          if (key) {
-            $$ = key;
+          //char *ten_bit_key = ten_bit_nums_add_string(prog_data, $1);
+          //char* key = nums_add_string(prog_data, $1, DECIMAL);
+          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+            prog_data->nbuf_ptr--;
+            prog_data->buf_overflow_check = 1;
+          }
+          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], DECIMAL, $1, prog_data->wordsize);
+          if (ret == SUCCESS) {
+            // pass
           } else {
-            $$ = ten_bit_key;
             prog_data->poison = 1;
           }
+          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }
       | HEX
         {
 #ifdef DEBUG
           printf("hex\n");
 #endif
-          char* key = nums_add_string(prog_data, $1, HEXADECIMAL);
-          $$ = key;
+          //char* key = nums_add_string(prog_data, $1, HEXADECIMAL);
+          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+            prog_data->nbuf_ptr--;
+            prog_data->buf_overflow_check = 1;
+          }
+          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], HEXADECIMAL, $1, prog_data->wordsize);
+          if (ret == SUCCESS) {
+            // pass
+          } else {
+            prog_data->poison = 1;
+          }
+          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }
       | BIN
         {
 #ifdef DEBUG
           printf("binary\n");
 #endif
-          char* key = nums_add_string(prog_data, $1, BINARY);
-          $$ = key;
+          //char* key = nums_add_string(prog_data, $1, BINARY);
+          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
+            prog_data->nbuf_ptr--;
+            prog_data->buf_overflow_check = 1;
+          }
+          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], BINARY, $1, prog_data->wordsize);
+          if (ret == SUCCESS) {
+            // pass
+          } else {
+            prog_data->poison = 1;
+          }
+          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }
-      | VAR 
+      | VAR
         {
 #ifdef DEBUG
           printf("variable %c\n", $1);
 #endif
-          char* key = vars_get_val(prog_data, $1);
-          $$ = key;
+          $$ = vars_get_num(prog_data, $1);
         }
       ;
 

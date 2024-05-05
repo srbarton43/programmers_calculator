@@ -4,16 +4,17 @@
 
 #include <stdint.h>
 
+#define SUCCESS 0
+#define ERROR (-1)
+
 typedef uint64_t u64;
 typedef uint8_t u8;
 
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
 typedef struct number {
-  int wordsize; // max wordsize for the bitstring
-  int len;      // actual length of bitstring
-  char *bits;   // non null-terminated bitstring
-  u64 num;
+  int wordsize; // wordsize for the bitstring
+  u64 num;      // stores bitstring (only conisider [wordsize] LSB's
 } number_t;
 
 typedef struct num_flags {
@@ -22,8 +23,8 @@ typedef struct num_flags {
   unsigned int overflow : 1; // high is there is an overflow
 } num_flags_t;
 
-extern number_t *_zero_;
-extern number_t *_one_;
+extern number_t _zero_;
+extern number_t _one_;
 
 num_flags_t global_nums_flag;
 
@@ -49,25 +50,7 @@ num_flags_t global_nums_flag;
  *
  * example: new_number(BINARY, "1101", 9)
  */
-number_t *new_number(type_e type, const char *number, int wordsize);
-
-/********       CHANGE_WORDSIZE      ********/
-/*
- * changes wordsize of number to new wordsize
- *
- * params:
- *    number_t* num := number you want to change wordsize
- *    int wordsize  := new wordsize
- *
- * returns:
- *    nothing
- *
- * we guarantee:
- *    num->wordsize = wordsize
- *    num->bits is left-padded with '0's if new wordsize is bigger
- *              and most-sig bits chopped off if wordsize is smaller
- */
-void change_wordsize(number_t *num, int wordsize);
+int new_number(number_t *out, type_e type, const char *number, int wordsize);
 
 /************** NUMBER_PRINT ****************/
 /* Prints the Number Struct to stdout
@@ -114,7 +97,7 @@ void delete_number(number_t *number);
  * we guarantee:
  *    params aren't modified
  */
-number_t *copy_number(number_t *number, int wordsize);
+int copy_number(number_t *new, number_t *old, int wordsize);
 
 int numbers_are_equal(number_t *a, number_t *b);
 
@@ -130,21 +113,6 @@ void init_numbers(void);
  */
 void free_numbers(void);
 
-/**********     number_getUdec       *******/
-/*
- * returns unsigned integer rep for number
- *
- * params:
- *    number_t* number  := number
- *
- * returns:
- *    unsigned int := unsigned integer rep for param number
- *
- * we guarantee:
- *    number is unchanged
- */
-unsigned long long number_getUdec(number_t *number);
-
 /**********     number_getSdec       *******/
 /*
  * returns signed integer rep for number
@@ -158,9 +126,8 @@ unsigned long long number_getUdec(number_t *number);
  * we guarantee:
  *    number is unchanged
  */
-signed long long number_getSdec(number_t *number);
+int number_getSdec(int64_t *out, number_t *number);
 
-int64_t number_getSdec_u64(number_t *number);
 /*
  * number_getHex
  *
@@ -179,33 +146,6 @@ char *number_getHex(number_t *number);
 //           OPERATORS                 //
 /////////////////////////////////////////
 
-/************* dec2binary **************/
-/*
- * Converts unsigned decimal to bitstring
- *
- * uses divideBy2 algorithm
- *
- * parameters:
- *  decimal => unsigned decimal value
- *  binary => bitstring to return
- * returns:
- *  none
- */
-int dec2binary(unsigned long long decimal, char *binary, int wordsize);
-
-/*             hex2binary               */
-/*
- * Converts hexstring to bitstring
- *
- * params:
- *    char* hex     := hexstring (not including '0x')
- *    char* binary  := bitstring
- *
- * returns:
- *    nothing
- */
-int hex2binary(const char *hex, char *binary, int wordsize);
-
 /********* ONE's COMPLEMENT****************/
 /*
  * returns one's complement of num (bitwise not)
@@ -214,7 +154,7 @@ int hex2binary(const char *hex, char *binary, int wordsize);
  *    number_t* num := valid pointer to number int wordsize  := wordsize for
  * return number returns: number_t* number where... number->wordsize = wordsize
  */
-number_t *ones_comp(number_t *num, int wordsize);
+int ones_comp(number_t *out, number_t *num, int wordsize);
 
 /********* TWO's COMPLEMENT****************/
 /*
@@ -228,7 +168,7 @@ number_t *ones_comp(number_t *num, int wordsize);
  *    number_t* number where...
  *      number->wordsize = wordsize
  */
-number_t *twos_comp(number_t *num, int wordsize);
+int twos_comp(number_t *out, number_t *num, int wordsize);
 
 /************** ADD ***********************/
 /*
@@ -249,13 +189,13 @@ number_t *twos_comp(number_t *num, int wordsize);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t *add(number_t *a, number_t *b, int wordsize);
+int add(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /***************** SUB ***********************/
 /*
  * subtract a from b
  */
-number_t *sub(number_t *a, number_t *b, int wordsize);
+int sub(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /************** LSHIFT ***********************/
 /*
@@ -275,7 +215,7 @@ number_t *sub(number_t *a, number_t *b, int wordsize);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t *lshift(number_t *number, number_t *positions, int wordsize);
+int lshift(number_t *out, number_t *number, number_t *positions, int wordsize);
 
 /************** RSHIFT ***********************/
 /*
@@ -295,17 +235,17 @@ number_t *lshift(number_t *number, number_t *positions, int wordsize);
  * callee guarantees:
  *    paramaters are unchanged
  */
-number_t *rshift(number_t *number, number_t *positions, int wordsize);
+int rshift(number_t *out, number_t *number, number_t *positions, int wordsize);
 
 /*
  *
  */
-number_t * and (number_t * a, number_t *b, int wordsize);
+int and(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /*
  *
  */
-number_t * or (number_t * a, number_t *b, int wordsize);
+int or(number_t *out, number_t *a, number_t *b, int wordsize);
 
 #ifdef UNIT_TEST
 
@@ -319,10 +259,6 @@ int test_and(int ws, char *a, int aWs, char *b, int bWs, char *expected,
              char *msg);
 int test_or(int ws, char *a, int aWs, char *b, int bWs, char *expected,
             char *msg);
-
-int test_dec2binary(unsigned long long decimal, char *expected, int wordsize);
-int test_hex2binary(char *hex, char *expected);
-
 #endif
 
 #endif // NUMBER_H

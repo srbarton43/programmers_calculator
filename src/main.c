@@ -1,3 +1,5 @@
+#include "stdio.h"
+
 #include "number.h"
 #include "parser.tab.h"
 #include "utils.h"
