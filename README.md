@@ -53,7 +53,7 @@ Note that while two numbers can have the same value, if they have _different_ wo
 ## Future Plans
 
 - [ ] better grammar
-- [ ] better error messages (especially regarding overflows and OOB)
+- [x] better error messages (especially regarding overflows and OOB)
 - [ ] rotate operations
 - [ ] 1024-bit wordsize (by storing array of u64)
-- [ ] RIIR
+- [ ] RIIR?

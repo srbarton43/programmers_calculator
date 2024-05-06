@@ -1,8 +1,8 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "utils.h"
 #include "number.h"
+#include "utils.h"
 
 static const struct status_bitfield _empty_bitfield_;
 
@@ -41,9 +41,7 @@ void print_program_data(program_data_t *p_data) {
   printf("wordsize: %d\n", p_data->wordsize);
 }
 
-void free_program_data(program_data_t *p_data) {
-  free(p_data);
-}
+void free_program_data(program_data_t *p_data) { free(p_data); }
 
 number_t vars_get_num(program_data_t *prog_data, char var) {
   int idx = var - 'a';

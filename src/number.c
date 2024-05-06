@@ -46,7 +46,8 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
         new_num->metadata.UNSIGNED_OVERFLOW = 1;
       else if (raw_decimal & 1ULL << (wordsize - 1))
         new_num->metadata.SIGNED_OVERFLOW = 1;
-      new_num->num = raw_decimal & MASK;
+      new_num->num = raw_decimal;
+      // new_num->num = raw_decimal & MASK;
       break;
     }
     case HEXADECIMAL: {
@@ -115,7 +116,7 @@ static u64 get_nibble_val(char c) {
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
   out->metadata.SIGNED_OVERFLOW |= a->metadata.SIGNED_OVERFLOW;
   out->metadata.UNSIGNED_OVERFLOW |= a->metadata.UNSIGNED_OVERFLOW;
-  if (NULL != b){
+  if (NULL != b) {
     out->metadata.SIGNED_OVERFLOW |= b->metadata.SIGNED_OVERFLOW;
     out->metadata.UNSIGNED_OVERFLOW |= b->metadata.UNSIGNED_OVERFLOW;
   }
@@ -238,11 +239,12 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
   u64 aMSB = a->num & (1ULL << (wordsize - 1));
   u64 bMSB = b->num & (1ULL << (wordsize - 1));
   u64 oMSB = out->num & (1ULL << (wordsize - 1));
-  if ((oMSB && ! bMSB && ! aMSB) || (! oMSB && aMSB && bMSB))
+  if ((oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB))
     out->metadata.SIGNED_OVERFLOW = 1;
   global_nums_flag.zero = out->num == 0ULL;
   global_nums_flag.sign = (out->num & (1ULL << (wordsize - 1))) > 1;
-  global_nums_flag.overflow = (oMSB && ! bMSB && ! aMSB) || (! oMSB && aMSB && bMSB);
+  global_nums_flag.overflow =
+      (oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB);
   return SUCCESS;
 }
 
@@ -263,7 +265,7 @@ int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   }
   bubble_up_overflows(out, number, positions);
   if (number->num << positions->num > ((1ULL << wordsize) - 1))
-    out->metadata.UNSIGNED_OVERFLOW= 1;
+    out->metadata.UNSIGNED_OVERFLOW = 1;
   out->wordsize = wordsize;
   out->num = number->num << positions->num & MASK;
   return SUCCESS;
@@ -292,7 +294,7 @@ int and(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 /*             or              */
-int or(number_t *out, number_t * a, number_t *b, int wordsize) {
+int or(number_t *out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
   bubble_up_overflows(out, a, b);
