@@ -54,6 +54,8 @@ Note that while two numbers can have the same value, if they have _different_ wo
 
 - [ ] better grammar
 - [x] better error messages (especially regarding overflows and OOB)
+- [ ] history + use of arrow keys to navigate
+- [ ] ncurses mode?
 - [ ] rotate operations
 - [ ] 1024-bit wordsize (by storing array of u64)
 - [ ] RIIR?
