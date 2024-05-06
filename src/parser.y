@@ -13,6 +13,9 @@
   int yylex_destroy(void);
   void yyerror(const char* s, ...);
 
+  static const struct status_bitfield _empty_bitfield_;
+  static const number_t _empty_num_;
+
 %}
 
 /* tokens */
@@ -51,24 +54,26 @@ line: EOL
         printf("line\n");
 #endif
 
-        if (prog_data->poison) {
+        if (prog_data->status.POISON) {
           printf("Error...\n");
-        } else if (1 == prog_data->buf_overflow_check) {
+        } else if (prog_data->status.NUM_BUF_OF) {
           printf("Error: More numbers than the program can handle\n");
-        } else if (6 == prog_data->status) {
+        } else if (prog_data->status.WSIZE_CHG) {
           // wsize change
-        } else if (5 == prog_data->status) {
+        } else if (prog_data->status.VAR_ASSN) {
           // var assignment
-        } else if (-1 == prog_data->status) {
-          printf("Error: TODO make this message better\n");
         } else {
-          printf("  =\n");
-          number_print(&$1);
+          if($1.metadata.UNSIGNED_OVERFLOW)
+            printf("Error: There was a unsigned overflow...the resulting number was larger than the wordsize!\n");
+          else {
+            printf("  =\n");
+            number_print(&$1);
+            if ($1.metadata.SIGNED_OVERFLOW)
+              printf("Warning: There was a signed overflow...the integer value might be inaccurate!\n");
+          }
         }
-        prog_data->poison = 0;
-        prog_data->status = 0;
+        prog_data->status = _empty_bitfield_;
         prog_data->nbuf_ptr = 0;
-        prog_data->buf_overflow_check = 0;
       }
     | error EOL
     ;
@@ -80,7 +85,7 @@ statement: QUIT
          | W_SIZE
             {
               printf("The current wordsize is %d\n", prog_data->wordsize);
-              prog_data->status = 6;
+              prog_data->status.WSIZE_CHG = 1;
             }
          | W_SIZE number
             {
@@ -91,8 +96,8 @@ statement: QUIT
                 printf("changed wordsize to %lld\n", new_wsize);
                 prog_data->wordsize = new_wsize;
               }
-              prog_data->poison = 0;
-              prog_data->status = 6;
+              prog_data->status.POISON = 0;
+              prog_data->status.WSIZE_CHG = 1;
             }
          | VAR '=' expression
           {
@@ -103,7 +108,7 @@ statement: QUIT
             vars_set_num(prog_data, $1, &$3);
             printf("%c\n  = \n", $1);
             number_print(&$3);
-            prog_data->status = 5;
+            prog_data->status.VAR_ASSN = 1;
           }
          | expression
             {
@@ -124,8 +129,9 @@ expression: number
               //number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               add(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               if (global_nums_flag.overflow)
                 printf("There was an overflow\n");
@@ -140,8 +146,9 @@ expression: number
               //char* key = nums_add_number(prog_data, num);
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               sub(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$3, &$1, prog_data->wordsize);
               if (global_nums_flag.overflow)
                 printf("There was an underflow\n");
@@ -158,8 +165,9 @@ expression: number
               //$$ = key;
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               rshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -172,8 +180,9 @@ expression: number
               //free($1); free($3);
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               lshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               //printf("result: \n"); number_print(num);
               //char* key = nums_add_number(prog_data, num);
@@ -189,8 +198,9 @@ expression: number
               //char* key = nums_add_number(prog_data, num);
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               and(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -205,8 +215,9 @@ expression: number
               //$$ = key;
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               or(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -221,8 +232,9 @@ expression: number
               //$$ = key;
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               twos_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -237,8 +249,9 @@ expression: number
               //$$ = key;
               if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
                 prog_data->nbuf_ptr--;
-                prog_data->buf_overflow_check = 1;
+                prog_data->status.NUM_BUF_OF = 1;
               }
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
               ones_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -257,13 +270,14 @@ number: DEC
           //char* key = nums_add_string(prog_data, $1, DECIMAL);
           if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
             prog_data->nbuf_ptr--;
-            prog_data->buf_overflow_check = 1;
+            prog_data->status.NUM_BUF_OF = 1;
           }
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], DECIMAL, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
-            prog_data->poison = 1;
+            prog_data->status.POISON = 1;
           }
           $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }
@@ -275,13 +289,14 @@ number: DEC
           //char* key = nums_add_string(prog_data, $1, HEXADECIMAL);
           if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
             prog_data->nbuf_ptr--;
-            prog_data->buf_overflow_check = 1;
+            prog_data->status.NUM_BUF_OF = 1;
           }
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], HEXADECIMAL, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
-            prog_data->poison = 1;
+            prog_data->status.POISON = 1;
           }
           $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }
@@ -293,13 +308,14 @@ number: DEC
           //char* key = nums_add_string(prog_data, $1, BINARY);
           if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
             prog_data->nbuf_ptr--;
-            prog_data->buf_overflow_check = 1;
+            prog_data->status.NUM_BUF_OF = 1;
           }
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], BINARY, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
-            prog_data->poison = 1;
+            prog_data->status.POISON = 1;
           }
           $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
         }

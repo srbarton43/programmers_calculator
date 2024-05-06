@@ -11,11 +11,16 @@
 #define VAR_NUM 26    // the number of vars (26 for each lcase char in alphabet)
 #define MAX_NUMBERS_COUNT 32
 
+struct status_bitfield {
+  unsigned int NUM_BUF_OF : 1; // more numbers than buffer can handle
+  unsigned int POISON : 1;     // not sure what this means
+  unsigned int VAR_ASSN : 1;   // high if there was a variable assignment
+  unsigned int WSIZE_CHG : 1;  // high if wordsize change
+};
+
 typedef struct program_data {
   int wordsize;
-  int poison;
-  int status;
-  int buf_overflow_check;
+  struct status_bitfield status;
   number_t vars[VAR_NUM];
   number_t numbers_buf[MAX_NUMBERS_COUNT];
   int nbuf_ptr;

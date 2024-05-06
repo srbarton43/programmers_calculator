@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "number.h"
 
+static const struct status_bitfield _empty_bitfield_;
+
 int max(int a, int b) {
   if (a >= b)
     return a;
@@ -23,9 +25,8 @@ program_data_t *init_program_data(void) {
     copy_number(&p_data->vars[i], &_zero_, 4);
   }
   p_data->nbuf_ptr = 0;
-  p_data->buf_overflow_check = 0;
   p_data->wordsize = DEFAULT_WS;
-  p_data->poison = 0;
+  p_data->status = _empty_bitfield_;
 
   return p_data;
 }

@@ -1,6 +1,3 @@
-// A THOUGHT
-// operations could store result in second param? like asm
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,11 +12,11 @@ number_t _zero_;
 number_t _one_;
 
 static void print_u64(u64 num, int wordsize);
-static int bits_to_u64(const char *bitstring, int wordsize, u64 *out);
-static int hex_to_u64(const char *hexstring, int wordsize, u64 *out);
+static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
+static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out);
+static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
 
-// TODO check return code;
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   if (number == NULL) {
     perror("null number string");
@@ -27,7 +24,10 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   }
   number_t *new_num = out;
   new_num->wordsize = wordsize;
+  new_num->metadata.SIGNED_OVERFLOW = 0;
+  new_num->metadata.UNSIGNED_OVERFLOW = 0;
   new_num->num = 0;
+  int ret = SUCCESS;
 
   int slen = strlen(number);
   if (slen == 1 && number[0] == '0') {
@@ -36,15 +36,22 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
     // check return codes here
     switch (type) {
     case BINARY: {
-      bits_to_u64(number, wordsize, &new_num->num);
+      if (ERROR == bitstring_to_u64(number, wordsize, &new_num->num))
+        new_num->metadata.UNSIGNED_OVERFLOW = 1;
       break;
     }
     case DECIMAL: {
-      new_num->num = atoll(number);
+      u64 raw_decimal = atoll(number);
+      if (raw_decimal > (1ULL << wordsize) - 1ULL)
+        new_num->metadata.UNSIGNED_OVERFLOW = 1;
+      else if (raw_decimal & 1ULL << (wordsize - 1))
+        new_num->metadata.SIGNED_OVERFLOW = 1;
+      new_num->num = raw_decimal & MASK;
       break;
     }
     case HEXADECIMAL: {
-      hex_to_u64(number, wordsize, &new_num->num);
+      if (ERROR == hexstring_to_u64(number, wordsize, &new_num->num))
+        new_num->metadata.UNSIGNED_OVERFLOW = 1;
       break;
     }
     default:
@@ -53,10 +60,10 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
       return ERROR;
     }
   }
-  return SUCCESS;
+  return ret;
 }
 
-static int bits_to_u64(const char *bitstring, int wordsize, u64 *out) {
+static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
   u64 num = 0;
   int slen = strlen(bitstring);
 
@@ -74,7 +81,7 @@ static int bits_to_u64(const char *bitstring, int wordsize, u64 *out) {
   return SUCCESS;
 }
 
-static int hex_to_u64(const char *hexstring, int wordsize, u64 *out) {
+static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out) {
   u64 num = 0;
   int i = 0;
   int slen = strlen(hexstring);
@@ -86,7 +93,7 @@ static int hex_to_u64(const char *hexstring, int wordsize, u64 *out) {
   }
 
   if (i < slen) {
-    printf("hex bigger than wordsize\n");
+    printf("Hex bigger than wordsize\n");
     return ERROR;
   }
 
@@ -105,13 +112,23 @@ static u64 get_nibble_val(char c) {
     return 0;
 }
 
-void change_wordsize(number_t *num, int wordsize) { return; }
+static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
+  out->metadata.SIGNED_OVERFLOW |= a->metadata.SIGNED_OVERFLOW;
+  out->metadata.UNSIGNED_OVERFLOW |= a->metadata.UNSIGNED_OVERFLOW;
+  if (NULL != b){
+    out->metadata.SIGNED_OVERFLOW |= b->metadata.SIGNED_OVERFLOW;
+    out->metadata.UNSIGNED_OVERFLOW |= b->metadata.UNSIGNED_OVERFLOW;
+  }
+  return SUCCESS;
+}
 
 int number_getSdec(int64_t *out, number_t *number) {
   int ws = number->wordsize;
   u64 num = number->num;
-  if ((num & (1ULL << (ws - 1ULL))) < 1ULL)
-    return (int64_t)num;
+  if ((num & (1ULL << (ws - 1ULL))) < 1ULL) {
+    *out = (int64_t)num;
+    return SUCCESS;
+  }
   u64 mask = (1ULL << (ws - 1)) - 1ULL;
   *out = -(1ULL << (ws - 1ULL)) + (num & mask);
   return SUCCESS;
@@ -155,7 +172,6 @@ void number_print(number_t *number) {
   printf("NUMBER %p\n", number);
 #endif
   printf("WORDSIZE %d\n", number->wordsize);
-  // printf("BITSTRING "); printBits(number); printf("\n");
   printf("BITSTRING: ");
   print_u64(number->num, number->wordsize);
   printf("\n");
@@ -200,6 +216,8 @@ int ones_comp(number_t *out, number_t *num, int wordsize) {
 int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
+  if (num->num != (1ULL << (wordsize - 1)))
+    bubble_up_overflows(out, num, NULL);
   out->wordsize = wordsize;
   out->num = ~num->num + 1 & MASK;
   return SUCCESS;
@@ -216,9 +234,15 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
 #endif
   out->wordsize = wordsize;
   out->num = a->num + b->num & MASK;
+  bubble_up_overflows(out, a, b);
+  u64 aMSB = a->num & (1ULL << (wordsize - 1));
+  u64 bMSB = b->num & (1ULL << (wordsize - 1));
+  u64 oMSB = out->num & (1ULL << (wordsize - 1));
+  if ((oMSB && ! bMSB && ! aMSB) || (! oMSB && aMSB && bMSB))
+    out->metadata.SIGNED_OVERFLOW = 1;
+  global_nums_flag.zero = out->num == 0ULL;
   global_nums_flag.sign = (out->num & (1ULL << (wordsize - 1))) > 1;
-  // TODO:
-  global_nums_flag.overflow = 0;
+  global_nums_flag.overflow = (oMSB && ! bMSB && ! aMSB) || (! oMSB && aMSB && bMSB);
   return SUCCESS;
 }
 
@@ -228,7 +252,6 @@ int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
     return ERROR;
   if (ERROR == add(out, b, &neg_a, wordsize))
     return ERROR;
-
   return SUCCESS;
 }
 
@@ -238,6 +261,9 @@ int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
     printf("pos must be positive\n");
     return ERROR;
   }
+  bubble_up_overflows(out, number, positions);
+  if (number->num << positions->num > ((1ULL << wordsize) - 1))
+    out->metadata.UNSIGNED_OVERFLOW= 1;
   out->wordsize = wordsize;
   out->num = number->num << positions->num & MASK;
   return SUCCESS;
@@ -249,6 +275,7 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
     printf("pos must be positive\n");
     return ERROR;
   }
+  bubble_up_overflows(out, number, positions);
   out->wordsize = wordsize;
   out->num = number->num >> positions->num & MASK;
   return SUCCESS;
@@ -258,6 +285,7 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
 int and(number_t *out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
+  bubble_up_overflows(out, a, b);
   out->wordsize = wordsize;
   out->num = a->num & b->num & MASK;
   return SUCCESS;
@@ -267,7 +295,7 @@ int and(number_t *out, number_t *a, number_t *b, int wordsize) {
 int or(number_t *out, number_t * a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
-  out->wordsize = wordsize;
+  bubble_up_overflows(out, a, b);
   out->num = (a->num | b->num) & MASK;
   return SUCCESS;
 }

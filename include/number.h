@@ -12,9 +12,15 @@ typedef uint8_t u8;
 
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
+struct md_bf {
+  unsigned int UNSIGNED_OVERFLOW  : 1;
+  unsigned int SIGNED_OVERFLOW    : 1;
+};
+
 typedef struct number {
-  int wordsize; // wordsize for the bitstring
-  u64 num;      // stores bitstring (only conisider [wordsize] LSB's
+  int wordsize;           // wordsize for the bitstring
+  u64 num;                // stores bitstring (only conisider [wordsize] LSB's
+  struct md_bf metadata;  // stores number metadata about overflow, etc
 } number_t;
 
 typedef struct num_flags {
