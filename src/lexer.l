@@ -1,5 +1,6 @@
 
 %{
+  #include "number.h"
   #include "parser.tab.h"
   void yyerror(char* s, ...);
 %}

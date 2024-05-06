@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "number.h"
 #include "utils.h"
 

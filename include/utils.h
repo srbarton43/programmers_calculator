@@ -4,22 +4,26 @@
 #ifndef __UTILS_H
 #define __UTILS_H
 
-#include "hashtable.h"
 #include "number.h"
 
 #define nums_SIZE 103 // the default hashtable size
 #define DEFAULT_WS 8  // the wordsize when pcalc starts
 #define VAR_NUM 26    // the number of vars (26 for each lcase char in alphabet)
+#define MAX_NUMBERS_COUNT 32
 
-#define SUCCESS 0
-#define ERROR (-1)
+struct status_bitfield {
+  unsigned int NUM_BUF_OF : 1; // more numbers than buffer can handle
+  unsigned int POISON : 1;     // not sure what this means
+  unsigned int VAR_ASSN : 1;   // high if there was a variable assignment
+  unsigned int WSIZE_CHG : 1;  // high if wordsize change
+};
 
 typedef struct program_data {
-  hashtable_t *nums;
-  hashtable_t *ten_bit_nums;
   int wordsize;
-  int poison;
-  char *vars[VAR_NUM];
+  struct status_bitfield status;
+  number_t vars[VAR_NUM];
+  number_t numbers_buf[MAX_NUMBERS_COUNT];
+  int nbuf_ptr;
 } program_data_t;
 
 // program data struct ... holds all program state
@@ -41,53 +45,8 @@ void print_program_data(program_data_t *prog_data);
 // frees program data struct
 void free_program_data(program_data_t *prog_data);
 
-// NUM HASHTABLE FUNCTIONS
+number_t vars_get_num(program_data_t *prog_data, char var);
 
-/*
- * nums_add_string - adds bitstring->number pair to ht
- *
- * params:
- *    const char* number  := string representing number
- *    type_e type         := enum type of number
- * returns:
- *    char* key           := bitstring used as key in ht
- *    NULL                := if error
- *
- * caller must:
- *    free return val at some point
- */
-char *nums_add_string(program_data_t *prog_data, const char *number,
-                      type_e type);
-
-char *ten_bit_nums_add_string(program_data_t *prog_data, const char *decimal);
-
-/*
- * nums_add_number - adds bitstring->number pair to ht
- *
- * params:
- *    number_t* number  := number struct
- * returns:
- *    char* key         := bitstring used as key in ht
- *
- * caller must:
- *    free return val at some point
- */
-char *nums_add_number(program_data_t *prog_data, number_t *number);
-
-/*
- * nums_get_num - gets number from hashtable
- *
- * params:
- *    const char* number  := bitstring as key
- * returns:
- *    number_t* num       := pointer to the number
- */
-number_t *nums_get_num(program_data_t *prog_data, const char *number);
-
-number_t *ten_bit_nums_get_num(program_data_t *prog_data, char *decimal);
-
-char *vars_get_val(program_data_t *prog_data, char var);
-
-void vars_set_val(program_data_t *prog_data, char var, char *val);
+void vars_set_num(program_data_t *prog_data, char var, number_t *num);
 
 #endif
