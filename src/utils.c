@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "number.h"
 #include "utils.h"
@@ -27,6 +28,7 @@ program_data_t *init_program_data(void) {
   p_data->nbuf_ptr = 0;
   p_data->wordsize = DEFAULT_WS;
   p_data->status = _empty_bitfield_;
+  memset(&p_data->numbers_buf, 0, MAX_NUMBERS_COUNT * sizeof(number_t));
 
   return p_data;
 }

@@ -3,7 +3,6 @@
 #include "utils.h"
 
 int main() {
-  init_numbers();
   int ret = 0;
   printf("Testing COPY_NUMBER\n");
 
@@ -15,6 +14,5 @@ int main() {
     printf("All Tests Passed!\n");
   else
     printf("Not All Tests Passed!\n");
-  free_numbers();
   return ret;
 }

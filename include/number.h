@@ -32,7 +32,7 @@ typedef struct num_flags {
 extern number_t _zero_;
 extern number_t _one_;
 
-num_flags_t global_nums_flag;
+extern num_flags_t global_nums_flag;
 
 /************** FUNCTIONS *******************/
 
@@ -106,12 +106,6 @@ void delete_number(number_t *number);
 int copy_number(number_t *new, number_t *old, int wordsize);
 
 int numbers_are_equal(number_t *a, number_t *b);
-
-/**********     INIT_NUMBERS     ********/
-/*
- * Initializes special numbers
- */
-void init_numbers(void);
 
 /**********     FREE_NUMBERS     ********/
 /*

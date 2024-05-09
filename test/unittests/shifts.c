@@ -3,7 +3,6 @@
 #include "utils.h"
 
 int main() {
-  init_numbers();
   int ret = 0;
   printf("Testing LSHIFT\n");
   ret = max(ret, test_lshift("110011", "1", "1100110", 8, NULL));
@@ -21,6 +20,5 @@ int main() {
     printf("All Tests Passed!\n");
   else
     printf("Not All Tests Passed!\n");
-  free_numbers();
   return ret;
 }

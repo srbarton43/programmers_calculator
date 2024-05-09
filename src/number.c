@@ -8,8 +8,9 @@
 
 #define MASK ((1ULL << wordsize) - 1)
 
-number_t _zero_;
-number_t _one_;
+number_t _zero_ = {1,0,{0,0}};
+number_t _one_ = {2,1,{0,0}};
+num_flags_t global_nums_flag = {0,0,0};
 
 static void print_u64(u64 num, int wordsize);
 static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
@@ -160,11 +161,6 @@ void delete_number(number_t *number) {
   }
 }
 
-void init_numbers(void) {
-  new_number(&_zero_, BINARY, "0", 1);
-  new_number(&_one_, BINARY, "1", 2);
-}
-
 void free_numbers(void) {}
 
 void number_print(number_t *number) {
@@ -249,7 +245,7 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
-  number_t neg_a;
+  number_t neg_a = {wordsize, 0, {0,0}};
   if (ERROR == twos_comp(&neg_a, a, a->wordsize))
     return ERROR;
   if (ERROR == add(out, b, &neg_a, wordsize))
