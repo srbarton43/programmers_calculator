@@ -1,9 +1,10 @@
 #include <stdio.h>
+#include <stdlib.h>
 #if defined(LIBEDIT)
 #include <histedit.h>
 #elif defined(READLINE)
 #include <readline/readline.h>
-#include <realine/history.h>
+#include <readline/history.h>
 #endif
 
 #include "utils.h"
@@ -85,17 +86,25 @@ int main(int argc, char *argv[]) {
   el_end(el);
 #endif
 #ifdef READLINE
-  const char *line;
-  while((buf = readline(">>> ")) != NULL) {
-    if strlen(line) > 0) {
+  char *line;
+  char *w_newline;
+  int slen;
+  while((line = readline(">>> ")) != NULL) {
+    slen = strlen(line);
+    if (slen > 0) {
       add_history(line);
     }
-    buffer = yy_scan_string(line);
+    w_newline = malloc((slen + 2) * sizeof(char));
+    strcpy(w_newline, line);
+    strcat(w_newline, "\n");
+    buffer = yy_scan_string(w_newline);
     yyparse();
     yy_delete_buffer(buffer);
-    free(buf);
+    free(w_newline);
+    free(line);
   }
 #endif
+  rl_clear_history();
   yylex_destroy();
   printf("\nThanks for using pcalc :)\n");
   free_program_data(prog_data);
