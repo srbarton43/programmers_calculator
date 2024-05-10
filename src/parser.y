@@ -6,8 +6,8 @@
   #include <string.h>
 
   #include "hashtable.h"
-  #include "number.h"
   #include "utils.h"
+  #include "number.h"
 
   int yylex(void);
   int yylex_destroy(void);

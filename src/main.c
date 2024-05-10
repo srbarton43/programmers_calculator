@@ -1,9 +1,13 @@
+#include <stdio.h>
+#if defined(LIBEDIT)
 #include <histedit.h>
-#include <string.h>
+#elif defined(READLINE)
+#include <readline/readline.h>
+#include <realine/history.h>
+#endif
 
-#include "number.h"
-#include "parser.tab.h"
 #include "utils.h"
+#include "parser.tab.h"
 
 void yylex_destroy(void);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
@@ -14,13 +18,16 @@ extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 // extern int global_wordsize;
 program_data_t *prog_data;
 
+#if defined(LIBEDIT)
 /* To print out the prompt you need to use a function.  This could be
 made to do something special, but I opt to just have a static prompt.
 */
 char *prompt(EditLine *e) { return ">>> "; }
+#endif
 
 int main(int argc, char *argv[]) {
 
+#ifdef LIBEDIT
   /* This holds all the state for our line editor */
   EditLine *el;
 
@@ -52,9 +59,11 @@ int main(int argc, char *argv[]) {
 
   /* This sets up the call back functions for history functionality */
   el_set(el, EL_HIST, history, myhistory);
+#endif
 
   prog_data = init_program_data();
   YY_BUFFER_STATE buffer;
+#ifdef LIBEDIT
   while (keepreading) {
     /* count is the number of characters read.
        line is a const char* of our command line with the tailing \n */
@@ -74,6 +83,19 @@ int main(int argc, char *argv[]) {
   }
   history_end(myhistory);
   el_end(el);
+#endif
+#ifdef READLINE
+  const char *line;
+  while((buf = readline(">>> ")) != NULL) {
+    if strlen(line) > 0) {
+      add_history(line);
+    }
+    buffer = yy_scan_string(line);
+    yyparse();
+    yy_delete_buffer(buffer);
+    free(buf);
+  }
+#endif
   yylex_destroy();
   printf("\nThanks for using pcalc :)\n");
   free_program_data(prog_data);
