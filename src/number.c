@@ -10,7 +10,6 @@
 
 number_t _zero_ = {1,0,{0,0}};
 number_t _one_ = {2,1,{0,0}};
-num_flags_t global_nums_flag = {0,0,0};
 
 static void print_u64(u64 num, int wordsize);
 static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
@@ -237,10 +236,6 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
   u64 oMSB = out->num & (1ULL << (wordsize - 1));
   if ((oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB))
     out->metadata.SIGNED_OVERFLOW = 1;
-  global_nums_flag.zero = out->num == 0ULL;
-  global_nums_flag.sign = (out->num & (1ULL << (wordsize - 1))) > 1;
-  global_nums_flag.overflow =
-      (oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB);
   return SUCCESS;
 }
 
