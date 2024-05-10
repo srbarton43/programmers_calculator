@@ -3,6 +3,7 @@
 
 project('pcalc', 'c')
 
+add_project_link_arguments('-ll', '-ledit', language : 'c')
 inc = include_directories('include')
 
 subdir('include')
@@ -13,4 +14,4 @@ executable( 'pcalc', src_files,
             include_directories : inc,
             link_with : hashtable,
             #c_args : '-DDEBUG',
-            link_args : '-ll' )
+            )

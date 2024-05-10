@@ -1,35 +1,81 @@
-#include "stdio.h"
+#include <histedit.h>
+#include <string.h>
 
 #include "number.h"
 #include "parser.tab.h"
 #include "utils.h"
 
 void yylex_destroy(void);
-typedef struct yy_buffer_state * YY_BUFFER_STATE;
-extern YY_BUFFER_STATE yy_scan_string(char * str);
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+extern YY_BUFFER_STATE yy_scan_string(const char *str);
 extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 
 // extern hashtable_t* ht;
 // extern int global_wordsize;
 program_data_t *prog_data;
 
-int main() {
+/* To print out the prompt you need to use a function.  This could be
+made to do something special, but I opt to just have a static prompt.
+*/
+char *prompt(EditLine *e) { return ">>> "; }
+
+int main(int argc, char *argv[]) {
+
+  /* This holds all the state for our line editor */
+  EditLine *el;
+
+  /* This holds the info for our history */
+  History *myhistory;
+
+  /* Temp variables */
+  int count;
+  const char *line;
+  int keepreading = 1;
+  HistEvent ev;
+
+  /* Initialize the EditLine state to use our prompt function and
+  emacs style editing. */
+
+  el = el_init(argv[0], stdin, stdout, stderr);
+  el_set(el, EL_PROMPT, &prompt);
+  el_set(el, EL_EDITOR, "emacs");
+
+  /* Initialize the history */
+  myhistory = history_init();
+  if (myhistory == 0) {
+    fprintf(stderr, "history could not be initialized\n");
+    return 1;
+  }
+
+  /* Set the size of the history */
+  history(myhistory, &ev, H_SETSIZE, 800);
+
+  /* This sets up the call back functions for history functionality */
+  el_set(el, EL_HIST, history, myhistory);
+
   prog_data = init_program_data();
-  char string[] = "1+4\n";
-  YY_BUFFER_STATE buffer = yy_scan_string(string);
-  yyparse();
-  yy_delete_buffer(buffer);
+  YY_BUFFER_STATE buffer;
+  while (keepreading) {
+    /* count is the number of characters read.
+       line is a const char* of our command line with the tailing \n */
+    line = el_gets(el, &count);
+
+    /* In order to use our history we have to explicitly add commands
+    to the history */
+    if (count > 0) {
+      history(myhistory, &ev, H_ENTER, line);
+      /* Clean up our memory */
+      buffer = yy_scan_string(line);
+      yyparse();
+      yy_delete_buffer(buffer);
+    } else {
+      break;
+    }
+  }
+  history_end(myhistory);
+  el_end(el);
   yylex_destroy();
+  printf("\nThanks for using pcalc :)\n");
   free_program_data(prog_data);
   return 0;
-//  prog_data = init_program_data();
-//  printf(">>> ");
-//  int ret = yyparse();
-//  yylex_destroy();
-//  printf("\nThanks for using pcalc :)\n");
-//#ifdef DEBUG
-//  print_program_data(prog_data);
-//#endif
-//  free_program_data(prog_data);
-//  return ret;
 }
