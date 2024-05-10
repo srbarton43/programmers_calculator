@@ -23,16 +23,8 @@ typedef struct number {
   struct md_bf metadata;  // stores number metadata about overflow, etc
 } number_t;
 
-typedef struct num_flags {
-  unsigned int zero : 1;     // high if zero
-  unsigned int sign : 1;     // high if interpreted as negative
-  unsigned int overflow : 1; // high is there is an overflow
-} num_flags_t;
-
 extern number_t _zero_;
 extern number_t _one_;
-
-extern num_flags_t global_nums_flag;
 
 /************** FUNCTIONS *******************/
 

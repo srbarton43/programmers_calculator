@@ -1,8 +1,9 @@
 
 %{
   #include "number.h"
+  #include "utils.h"
   #include "parser.tab.h"
-  void yyerror(char* s, ...);
+  void yyerror(number_t *number, status_t *status, u64 *arg, char* msg, ...);
 %}
 
 %option nounput
@@ -21,5 +22,5 @@ ws          { return(W_SIZE); }
 \n          { return EOL; }
 [ \t]       { /* ignore whitespace */ }
 [a-z]       { yylval.c_value = yytext[0]; return VAR; }
-.           { yyerror("unexpected character: %c", yytext[0]); yylval.c_value = yytext[0]; return (int)yytext[0]; }
+.           { yyerror(NULL, NULL, NULL, "unexpected character: %c", yytext[0]); yylval.c_value = yytext[0]; return (int)yytext[0]; }
 %%

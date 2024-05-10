@@ -28,5 +28,5 @@ subdir('test')
 executable( 'pcalc', src_files,
             include_directories : inc,
             link_with : hashtable,
-            c_args : '-DDEBUG',
+            #c_args : '-DDEBUG',
             )

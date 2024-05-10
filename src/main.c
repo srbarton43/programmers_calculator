@@ -1,14 +1,19 @@
+#include <signal.h>
 #include <stdio.h>
-#include <stdlib.h>
 #if defined(LIBEDIT)
 #include <histedit.h>
+
+/* This holds all the state for our line editor */
+EditLine *el;
+
 #elif defined(READLINE)
-#include <readline/readline.h>
 #include <readline/history.h>
+#include <readline/readline.h>
+#include <stdlib.h>
 #endif
 
-#include "utils.h"
 #include "parser.tab.h"
+#include "utils.h"
 
 void yylex_destroy(void);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
@@ -18,19 +23,28 @@ extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 // extern hashtable_t* ht;
 // extern int global_wordsize;
 program_data_t *prog_data;
+static status_t _emptystatus_ = {0};
+static number_t _emptynumber_ = {0};
 
 #if defined(LIBEDIT)
 /* To print out the prompt you need to use a function.  This could be
 made to do something special, but I opt to just have a static prompt.
 */
-char *prompt(EditLine *e) { return ">>> "; }
+char *prompt(EditLine *e) { return PROMPT; }
+void quit_message(int signal) {
+  printf("\ninterrupt (type \"quit\" to exit)\n%s", PROMPT);
+  fflush(stdout);
+}
 #endif
 
 int main(int argc, char *argv[]) {
 
+  int ret;
+  number_t number = _emptynumber_;
+  status_t status = _emptystatus_;
+  u64 arg = 0;
+
 #ifdef LIBEDIT
-  /* This holds all the state for our line editor */
-  EditLine *el;
 
   /* This holds the info for our history */
   History *myhistory;
@@ -47,6 +61,7 @@ int main(int argc, char *argv[]) {
   el = el_init(argv[0], stdin, stdout, stderr);
   el_set(el, EL_PROMPT, &prompt);
   el_set(el, EL_EDITOR, "emacs");
+  signal(SIGINT, quit_message);
 
   /* Initialize the history */
   myhistory = history_init();
@@ -76,11 +91,48 @@ int main(int argc, char *argv[]) {
       history(myhistory, &ev, H_ENTER, line);
       /* Clean up our memory */
       buffer = yy_scan_string(line);
-      yyparse();
+      ret = yyparse(&number, &status, &arg);
+      // printf("ret=%d\n", ret);
       yy_delete_buffer(buffer);
+      if (status.QUIT_SIG) {
+        break;
+      } else if (status.POISON) {
+        printf("Error...\n");
+      } else if (status.NUM_BUF_OF) {
+        printf("Error: More numbers than the program can handle\n");
+      } else if (status.WSIZE_PR) {
+        printf("The current wordsize is %d\n", prog_data->wordsize);
+      } else if (status.WSIZE_CHG) {
+        int new_wsize = arg;
+        if (new_wsize < 4 || new_wsize > 64) {
+          printf("unsupported wordsize: %d\n", new_wsize);
+        } else {
+          printf("changed wordsize to %d\n", new_wsize);
+          prog_data->wordsize = new_wsize;
+        }
+      } else if (status.VAR_ASSN) {
+        // var assignment
+        vars_set_num(prog_data, (char)arg, &number);
+        printf("%c\n  = \n", (char)arg);
+        number_print(&number);
+      } else {
+        if (number.metadata.UNSIGNED_OVERFLOW)
+          printf("Error: There was a unsigned overflow...the resulting number "
+                 "was larger than the wordsize!\n");
+        else {
+          printf("  =\n");
+          number_print(&number);
+          if (number.metadata.SIGNED_OVERFLOW)
+            printf("Warning: There was a signed overflow...the integer value "
+                   "might be inaccurate!\n");
+        }
+      }
     } else {
+      printf("\n");
       break;
     }
+    status = _emptystatus_;
+    number = _emptynumber_;
   }
   history_end(myhistory);
   el_end(el);
@@ -89,7 +141,7 @@ int main(int argc, char *argv[]) {
   char *line;
   char *w_newline;
   int slen;
-  while((line = readline(">>> ")) != NULL) {
+  while ((line = readline(">>> ")) != NULL) {
     slen = strlen(line);
     if (slen > 0) {
       add_history(line);
@@ -105,8 +157,11 @@ int main(int argc, char *argv[]) {
   }
   rl_clear_history();
 #endif
+#ifdef NOHISTORY
+  yyparse();
+#endif
   yylex_destroy();
-  printf("\nThanks for using pcalc :)\n");
+  printf("Thanks for using pcalc :)\n");
   free_program_data(prog_data);
   return 0;
 }
