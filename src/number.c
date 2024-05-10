@@ -174,8 +174,8 @@ void number_print(number_t *number) {
   printf("\n");
   int64_t sdec = 0;
   number_getSdec(&sdec, number);
-  printf("Integer Value: %lld\n", sdec);
-  printf("Unsigned Integer Value: %llu\n", number->num);
+  printf("Integer Value: %ld\n", sdec);
+  printf("Unsigned Integer Value: %lu\n", number->num);
   char *hex_u64 = number_getHex_u64(number);
   printf("Hexadecimal Value: %s\n", hex_u64);
   free(hex_u64);
@@ -216,7 +216,7 @@ int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (num->num != (1ULL << (wordsize - 1)))
     bubble_up_overflows(out, num, NULL);
   out->wordsize = wordsize;
-  out->num = ~num->num + 1 & MASK;
+  out->num = (~num->num + 1) & MASK;
   return SUCCESS;
 }
 
@@ -230,7 +230,7 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
          wordsize);
 #endif
   out->wordsize = wordsize;
-  out->num = a->num + b->num & MASK;
+  out->num = (a->num + b->num) & MASK;
   bubble_up_overflows(out, a, b);
   u64 aMSB = a->num & (1ULL << (wordsize - 1));
   u64 bMSB = b->num & (1ULL << (wordsize - 1));
