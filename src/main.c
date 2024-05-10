@@ -103,8 +103,8 @@ int main(int argc, char *argv[]) {
     free(w_newline);
     free(line);
   }
-#endif
   rl_clear_history();
+#endif
   yylex_destroy();
   printf("\nThanks for using pcalc :)\n");
   free_program_data(prog_data);

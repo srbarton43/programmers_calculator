@@ -174,8 +174,8 @@ void number_print(number_t *number) {
   printf("\n");
   int64_t sdec = 0;
   number_getSdec(&sdec, number);
-  printf("Integer Value: %ld\n", sdec);
-  printf("Unsigned Integer Value: %lu\n", number->num);
+  printf("Integer Value: %lld\n", (long long)sdec);
+  printf("Unsigned Integer Value: %llu\n", (unsigned long long)number->num);
   char *hex_u64 = number_getHex_u64(number);
   printf("Hexadecimal Value: %s\n", hex_u64);
   free(hex_u64);
