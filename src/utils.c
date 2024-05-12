@@ -34,8 +34,8 @@ extern int yyparse (number_t *output, status_t *status, u64 *arg);
 #ifdef LIBEDIT
 static char *prompt(EditLine *e) { return PROMPT; }
 static void quit_message(int signal) {
-  printf("\ninterrupt (type \"quit\" to exit)\n%s", PROMPT);
-  fflush(stdout);
+  printf("\ninterrupt (type \"quit\" to exit)\n");
+  el_set(el, EL_REFRESH);
 }
 #endif
 
@@ -84,15 +84,18 @@ int el_mainloop() {
     /* In order to use our history we have to explicitly add commands
     to the history */
     if (count > 0) {
-      history(myhistory, &ev, H_ENTER, line);
       /* Clean up our memory */
       buffer = yy_scan_string(line);
       ret = yyparse(&number, &status, &arg);
+      if (! status.EMPTY)
+        history(myhistory, &ev, H_ENTER, line);
       // printf("ret=%d\n", ret);
       yy_delete_buffer(buffer);
-      if (status.QUIT_SIG) {
       if (ret != 0) {
         printf("syntax error.\n");
+      } else if (status.EMPTY) {
+        // pass
+      } else if (status.QUIT_SIG) {
         break;
       } else if (status.POISON) {
         printf("Error...\n");
