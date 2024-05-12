@@ -1,7 +1,7 @@
 # root meson file
 # SRB - 2023
 
-project('pcalc', 'c')
+project('pc', 'c')
 
 cc = meson.get_compiler('c')
 
@@ -25,7 +25,7 @@ subdir('include')
 subdir('src')
 subdir('test')
 
-executable( 'pcalc', src_files,
+executable( 'pc', src_files,
             include_directories : inc,
             #c_args : '-DDEBUG',
             )

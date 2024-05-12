@@ -11,8 +11,7 @@ run_command(bison, '-b', parser_prefix, '-d', 'parser.y', check : true)
 lexer = meson.global_build_root() / 'lexer.c'
 run_command(flex, '-o', lexer, 'lexer.l', check : true)
 
-src_files = files('main.c', 'number.c', 'utils.c', parser_src, lexer)
-
+src_files = files('pc.c', 'number.c', 'utils.c', parser_src, lexer)
 
 unittest_sources = files('number.c', 'utils.c')
 unittest_lib = library('unittest_lib',
