@@ -63,24 +63,24 @@ line: EOL
       }
     ;
 
-statement: QUIT
+statement: QUIT EOL
             {
               status->QUIT_SIG = 1;
               YYACCEPT; // return from yyparse with 0 return code
             }
-         | W_SIZE
+         | W_SIZE EOL
             {
               status->WSIZE_PR = 1;
               YYACCEPT;
             }
-         | W_SIZE number
+         | W_SIZE number EOL
             {
               *arg = (u64) $2.num;
               status->POISON = 0;
               status->WSIZE_CHG = 1;
               YYACCEPT;
             }
-         | VAR '=' expression
+         | VAR '=' expression EOL
           {
 #ifdef DEBUG
             printf("var assignment\n");
