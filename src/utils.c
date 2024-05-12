@@ -91,6 +91,8 @@ int el_mainloop() {
       // printf("ret=%d\n", ret);
       yy_delete_buffer(buffer);
       if (status.QUIT_SIG) {
+      if (ret != 0) {
+        printf("syntax error.\n");
         break;
       } else if (status.POISON) {
         printf("Error...\n");

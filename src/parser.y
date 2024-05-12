@@ -58,7 +58,9 @@ line: EOL
         *output = $1;
         YYACCEPT;
       }
-    | error EOL
+    | error EOL {
+        YYABORT;
+      }
     ;
 
 statement: QUIT
@@ -93,8 +95,7 @@ statement: QUIT
 #ifdef DEBUG
               printf("expression\n");
 #endif
-              *output = $1;
-              YYACCEPT;
+              $$ = $1;
             }
          ;
 
@@ -309,8 +310,8 @@ void yyerror(number_t *number, status_t *status, u64 *arg, const char *msg, ...)
   {
   va_list args;
 
-  va_start (args, msg);
-  vfprintf (stderr, msg, args);
-  fprintf (stderr, "\n");
-  va_end (args);
+  //va_start (args, msg);
+  //vfprintf (stderr, msg, args);
+  //fprintf (stderr, "\n");
+  //va_end (args);
 }
