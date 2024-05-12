@@ -6,7 +6,6 @@
   #include <string.h>
 
   #include "number.h"
-  #include "hashtable.h"
   #include "utils.h"
 
   int yylex(void);
