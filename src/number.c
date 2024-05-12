@@ -73,7 +73,9 @@ static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
       num |= (bitstring[slen - i] - '0') << (i - 1);
   }
   if (i <= slen) {
+#ifdef DEBUG
     printf("binary bigger than wordsize\n");
+#endif
     return ERROR;
   }
 
@@ -92,8 +94,10 @@ static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out) {
     num |= nibble << (u64)(4ULL * ((u64)i - 1ULL));
   }
 
-  if (i < slen) {
+  if (num > 1ULL << wordsize) {
+#ifdef DEBUG
     printf("Hex bigger than wordsize\n");
+#endif
     return ERROR;
   }
 
