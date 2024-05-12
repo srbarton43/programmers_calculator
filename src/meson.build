@@ -13,12 +13,10 @@ run_command(flex, '-o', lexer, 'lexer.l', check : true)
 
 src_files = files('main.c', 'number.c', 'utils.c', parser_src, lexer)
 
-subdir('hashtable')
 
 unittest_sources = files('number.c', 'utils.c')
 unittest_lib = library('unittest_lib',
                            unittest_sources,
                            include_directories : inc,
-                           link_with : hashtable,
                            c_args : '-DUNIT_TEST' )
 
