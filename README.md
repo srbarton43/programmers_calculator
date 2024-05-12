@@ -1,4 +1,6 @@
-# Programmer's Calculator
+# `pc` 
+
+Programmer's Calculator inspired by POSIX `bc`
 
 ## The Vision
 
@@ -29,7 +31,7 @@ meson setup [build_dir] && cd [build_dir] && ninja
 Then run the program using:
 
 ```sh
-./pcalc
+./pc
 ```
 
 ## Testing
