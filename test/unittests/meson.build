@@ -1,5 +1,11 @@
 run_command('cp', '-rf', 'inputs', meson.global_build_root() / 'test' / 'unittests', check : true)
 
+unittest_sources += files('unittest_utils.c')
+unittest_lib = library('unittest_lib',
+                           unittest_sources,
+                           include_directories : inc,
+                           c_args : '-DUNIT_TEST' )
+
 test_addition_exe = executable( 'test_addition', 'addition.c',
   include_directories : inc,
   link_with : unittest_lib,

@@ -242,8 +242,8 @@ int or(number_t *out, number_t *a, number_t *b, int wordsize);
 #ifdef UNIT_TEST
 
 int test_twos_comp(char *num, char *expected, int wordsize, char *msg);
-int test_add(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg);
-int test_sub(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg);
+int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);
+int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);
 int test_copy_number(char *num, int iws, int ows, char *expected, char *msg);
 int test_lshift(char *num, char *pos, char *expected, int wordsize, char *msg);
 int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg);

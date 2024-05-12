@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "number.h"
-#include "utils.h"
 
 #define MASK ((1ULL << wordsize) - 1)
 
@@ -398,7 +397,7 @@ int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   return ret;
 }
 
-int test_add(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg) {
+int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg) {
   printf("_____ ADD a+b (%d-bit + %d-bit) _____\n", aWs, bWs);
   if (msg != NULL)
     printf("Objective: %s\n", msg);
@@ -412,9 +411,9 @@ int test_add(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg) {
   print_u64(b.num, bWs);
   printf("\n");
   printf("expected a+b = %s\n", expected);
-  add(&sum, &a, &b, max(aWs, bWs));
+  add(&sum, &a, &b, oWs);
   printf("actual a+b = ");
-  print_u64(sum.num, max(aWs, bWs));
+  print_u64(sum.num, oWs);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)
@@ -446,7 +445,7 @@ int test_copy_number(char *num, int iws, int ows, char *expected, char *msg) {
   return ret;
 }
 
-int test_sub(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg) {
+int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg) {
   printf("_____ SUB b-a (%d-bit - %d-bit) _____\n", bWs, aWs);
   if (msg != NULL)
     printf("Objective: %s\n", msg);
@@ -460,9 +459,9 @@ int test_sub(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg) {
   print_u64(a.num, aWs);
   printf("\n");
   printf("expected b-a = %s\n", expected);
-  sub(&sum, &a, &b, max(aWs, bWs));
+  sub(&sum, &a, &b, oWs);
   printf("actual b-a = ");
-  print_u64(sum.num, max(aWs, bWs));
+  print_u64(sum.num, oWs);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "number.h"
-#include "utils.h"
+#include "unittest_utils.h"
 
 int main() {
   int ret = 0;
