@@ -1,4 +1,3 @@
-
 %{
   #include "number.h"
   #include "utils.h"
@@ -16,9 +15,9 @@ ws          { return(W_SIZE); }
 "<<"        { return(LSHIFT); }
 "+"|"-"|"~"|"("|")"|"="|"&"|"|" { yylval.c_value = yytext[0]; 
               return (int)yytext[0]; }
-[10]+       { yylval.s_value = yytext; return BIN; }
-[1-9][0-9]* { yylval.s_value = yytext; return DEC; }
-0x[0-9a-f]+ { yylval.s_value = yytext; return HEX; }
+0b[10]+       { yylval.s_value = &yytext[2]; return BIN; }
+[0-9]+ { yylval.s_value = yytext; return DEC; }
+0x[0-9a-f]+ { yylval.s_value = &yytext[2]; return HEX; }
 \n          { return EOL; }
 [ \t]       { /* ignore whitespace */ }
 [a-z]       { yylval.c_value = yytext[0]; return VAR; }
