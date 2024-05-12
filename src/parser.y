@@ -2,8 +2,6 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <stdarg.h>
-  #include <stdbool.h>
-  #include <string.h>
 
   #include "number.h"
   #include "utils.h"
@@ -12,9 +10,7 @@
   int yylex_destroy(void);
   void yyerror(number_t* number, status_t *status, u64 *arg, const char *msg, ...);
 
-  static const number_t _empty_num_;
-  number_t nbuf[MAX_NUMBERS_COUNT];
-  int nbuf_ptr = 0;
+  static const number_t _empty_num_ = {0};
 %}
 
 %code requires { 
@@ -50,6 +46,10 @@
 %%
 
 line: EOL
+      {
+        status->EMPTY = 1;
+        YYACCEPT;
+      }
     | statement EOL
       {
 #ifdef DEBUG

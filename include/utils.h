@@ -18,7 +18,8 @@ typedef struct status_bitfield {
   unsigned int VAR_ASSN : 1;   // high if there was a variable assignment
   unsigned int WSIZE_CHG : 1;  // high if wordsize change
   unsigned int WSIZE_PR : 1;  // high if wordsize print
-  unsigned int QUIT_SIG: 1;// high if quit is asserted
+  unsigned int QUIT_SIG: 1;   // high if quit is asserted
+  unsigned int EMPTY : 1;     // high if line was empty
 } status_t;
 
 typedef struct program_data {
