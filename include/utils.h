@@ -32,11 +32,9 @@ typedef struct program_data {
 // program data struct ... holds all program state
 extern program_data_t *prog_data;
 
-// return max(a,b)
-int max(int a, int b);
+int el_mainloop(void);
 
-// return min(a,b)
-int min(int a, int b);
+int rl_mainloop(void);
 
 // PROGRAM DATA FUNCTIONS
 // initializes program data values
