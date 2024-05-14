@@ -41,8 +41,10 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
       break;
     }
     case DECIMAL: {
+      // TODO replace atoll with better logic
       u64 raw_decimal = atoll(number);
-      if (raw_decimal > (1ULL << wordsize) - 1ULL)
+      if ((wordsize == 64 && raw_decimal > UINT64_MAX) ||
+          (wordsize < 64 && raw_decimal > (1ULL << wordsize) - 1ULL))
         new_num->metadata.UNSIGNED_OVERFLOW = 1;
       else if (raw_decimal & 1ULL << (wordsize - 1))
         new_num->metadata.SIGNED_OVERFLOW = 1;
@@ -95,7 +97,7 @@ static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out) {
     num |= nibble << (u64)(4ULL * ((u64)i - 1ULL));
   }
 
-  if (num > 1ULL << wordsize) {
+  if (num > get_max_unsigned(wordsize)) {
 #ifdef DEBUG
     printf("Hex bigger than wordsize\n");
 #endif
@@ -247,7 +249,7 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
-  number_t neg_a = {wordsize, 0, {0,0}};
+  number_t neg_a = {wordsize, 0, {0, 0}};
   if (ERROR == twos_comp(&neg_a, a, a->wordsize))
     return ERROR;
   if (ERROR == add(out, b, &neg_a, wordsize))
@@ -278,7 +280,7 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
 }
 
 /*           and             */
-int and(number_t *out, number_t *a, number_t *b, int wordsize) {
+int and (number_t * out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
   bubble_up_overflows(out, a, b);
@@ -288,7 +290,7 @@ int and(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 /*             or              */
-int or(number_t *out, number_t *a, number_t *b, int wordsize) {
+int or (number_t * out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
   bubble_up_overflows(out, a, b);
@@ -302,6 +304,12 @@ int numbers_are_equal(number_t *a, number_t *b) {
     return 0;
   }
   return a->num == b->num;
+}
+
+static u64 get_max_unsigned(int wordsize) {
+  if (wordsize < 64)
+    return (1ULL << wordsize) - 1ULL;
+  return UINT64_MAX;
 }
 
 /***********************************/
@@ -401,7 +409,8 @@ int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   return ret;
 }
 
-int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg) {
+int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
+             char *msg) {
   printf("_____ ADD a+b (%d-bit + %d-bit) _____\n", aWs, bWs);
   if (msg != NULL)
     printf("Objective: %s\n", msg);
@@ -449,7 +458,8 @@ int test_copy_number(char *num, int iws, int ows, char *expected, char *msg) {
   return ret;
 }
 
-int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg) {
+int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
+             char *msg) {
   printf("_____ SUB b-a (%d-bit - %d-bit) _____\n", bWs, aWs);
   if (msg != NULL)
     printf("Objective: %s\n", msg);

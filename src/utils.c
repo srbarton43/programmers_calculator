@@ -92,7 +92,7 @@ int el_mainloop() {
       // printf("ret=%d\n", ret);
       yy_delete_buffer(buffer);
       if (ret != 0) {
-        printf("syntax error.\n");
+        printf("syntax error\n");
       } else if (status.EMPTY) {
         // pass
       } else if (status.QUIT_SIG) {
@@ -134,6 +134,7 @@ int el_mainloop() {
     }
     status = _emptystatus_;
     number = _emptynumber_;
+    prog_data->nbuf_ptr = 0;
   }
   history_end(myhistory);
   el_end(el);
