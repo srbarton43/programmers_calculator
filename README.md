@@ -54,10 +54,11 @@ Note that while two numbers can have the same value, if they have _different_ wo
 
 ## Future Plans
 
-- [ ] better grammar
 - [ ] add integration tests
+- [ ] detect 64-bit number overflows
 - [x] better error messages (especially regarding overflows and OOB)
 - [x] history + use of arrow keys to navigate
 - [ ] rotate operations
 - [ ] 1024-bit wordsize (by storing array of u64)
+- [ ] add documentation for number header
 - [ ] RIIR?
