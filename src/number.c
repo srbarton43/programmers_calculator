@@ -147,8 +147,11 @@ char *number_getHex_u64(number_t *number) {
   int np = ws % 4 == 0 ? ws / 4 - 1 : ws / 4;
   int hp = 2;
   for (; np >= 0; np--) {
-    nibble = (0xf << (np * 4) & num) >> (np * 4);
-    if (nibble > 9)
+    nibble = (0xfULL << (np * 4) & num) >> (np * 4);
+    if (nibble > 15) {
+      printf("wtf\n");
+      return NULL;
+    } else if (nibble > 9)
       hex[hp++] = 'a' + nibble - 10;
     else
       hex[hp++] = '0' + nibble;
