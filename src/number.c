@@ -5,16 +5,17 @@
 
 #include "number.h"
 
-#define MASK ((1ULL << wordsize) - 1)
+#define MASK get_max_unsigned(wordsize)
 
-number_t _zero_ = {1,0,{0,0}};
-number_t _one_ = {2,1,{0,0}};
+number_t _zero_ = {1, 0, {0, 0}};
+number_t _one_ = {2, 1, {0, 0}};
 
 static void print_u64(u64 num, int wordsize);
 static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
 static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out);
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
+static u64 get_max_unsigned(int wordsize);
 
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -252,25 +253,21 @@ int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
-  int pos = positions->num;
-  if (pos < 0) {
-    printf("pos must be positive\n");
-    return ERROR;
-  }
   bubble_up_overflows(out, number, positions);
-  if (number->num << positions->num > ((1ULL << wordsize) - 1))
+  // check for unsigned overflows
+  if ((number->num > MASK >> positions->num) ||
+      positions->num >= number->wordsize) {
+#ifdef DEBUG
+    printf("%s: unsigned overflow w/ num=%llu, pos=%llu\n", __FUNCTION__, (long long) number->num, (long long) positions->num);
+#endif
     out->metadata.UNSIGNED_OVERFLOW = 1;
+  }
   out->wordsize = wordsize;
   out->num = number->num << positions->num & MASK;
   return SUCCESS;
 }
 
 int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
-  int pos = positions->num;
-  if (pos < 0) {
-    printf("pos must be positive\n");
-    return ERROR;
-  }
   bubble_up_overflows(out, number, positions);
   out->wordsize = wordsize;
   out->num = number->num >> positions->num & MASK;
