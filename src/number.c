@@ -13,6 +13,7 @@ number_t _one_ = {2, 1, {0, 0}};
 static void print_u64(u64 num, int wordsize);
 static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
 static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out);
+static int decstring_to_u64(const char *decstring, int wordsize, u64 *out);
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
 static u64 get_max_unsigned(int wordsize);
@@ -42,7 +43,9 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
     }
     case DECIMAL: {
       // TODO replace atoll with better logic
-      u64 raw_decimal = atoll(number);
+      u64 raw_decimal = 0;              
+      if (ERROR == decstring_to_u64(number, wordsize, &raw_decimal))
+          new_num->metadata.UNSIGNED_OVERFLOW = 1;
       if ((wordsize == 64 && raw_decimal > UINT64_MAX) ||
           (wordsize < 64 && raw_decimal > (1ULL << wordsize) - 1ULL))
         new_num->metadata.UNSIGNED_OVERFLOW = 1;
@@ -83,6 +86,27 @@ static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
   }
 
   *out = num;
+  return SUCCESS;
+}
+
+static int decstring_to_u64(const char *decstring, int wordsize, u64 *out) {
+  u64 sum = 0;
+  char c;
+  int slen = strlen(decstring);
+  u64 factor = 1ULL;
+  printf("slen=%d\n", slen);
+  for (int i = slen - 1; i >= 0; i--) {
+    c = decstring[i];
+    sum += factor*(c-'0');
+    if (sum > get_max_unsigned(wordsize)) {
+#ifdef DEBUG
+      printf("Decimal bigger than wordsize\n");
+#endif
+      return ERROR;
+    }
+    factor *= 10;
+  }
+  *out = sum;
   return SUCCESS;
 }
 
@@ -263,7 +287,8 @@ int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   if ((number->num > MASK >> positions->num) ||
       positions->num >= number->wordsize) {
 #ifdef DEBUG
-    printf("%s: unsigned overflow w/ num=%llu, pos=%llu\n", __FUNCTION__, (long long) number->num, (long long) positions->num);
+    printf("%s: unsigned overflow w/ num=%llu, pos=%llu\n", __FUNCTION__,
+           (long long)number->num, (long long)positions->num);
 #endif
     out->metadata.UNSIGNED_OVERFLOW = 1;
   }
