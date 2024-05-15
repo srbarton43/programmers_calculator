@@ -90,21 +90,30 @@ static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
 }
 
 static int decstring_to_u64(const char *decstring, int wordsize, u64 *out) {
-  u64 sum = 0;
+  u64 sum = 0, new = 0;
+  u8 c_out;
   char c;
   int slen = strlen(decstring);
   u64 factor = 1ULL;
-  printf("slen=%d\n", slen);
+  u64 addend = 0;
   for (int i = slen - 1; i >= 0; i--) {
     c = decstring[i];
-    sum += factor*(c-'0');
-    if (sum > get_max_unsigned(wordsize)) {
+    addend = factor*(c-'0');
+    new = sum + addend;
+    c_out = addend ? new <= sum : new < sum;
+    if (wordsize == 64 && c_out) {
+#ifdef DEBUG
+      printf("Carry_out detected for u64\n");
+#endif
+      return ERROR;
+    } else if (sum > get_max_unsigned(wordsize)) {
 #ifdef DEBUG
       printf("Decimal bigger than wordsize\n");
 #endif
       return ERROR;
     }
     factor *= 10;
+    sum = new;
   }
   *out = sum;
   return SUCCESS;
