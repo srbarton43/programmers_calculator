@@ -18,14 +18,14 @@ else
   add_project_arguments('-DNOHISTORY', language : 'c')
 endif
 
-add_project_link_arguments('-ll', language : 'c')
+#add_project_link_arguments('-ll', language : 'c')
 inc = include_directories('include')
 
 subdir('include')
 subdir('src')
 subdir('test')
 
-executable( 'pc', src_files,
-            include_directories : inc,
-            #c_args : '-DDEBUG',
-            )
+#executable( 'pc', src_files,
+#            include_directories : inc,
+#            #c_args : '-DDEBUG',
+#            )

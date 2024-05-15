@@ -7,6 +7,9 @@
 #define SUCCESS 0
 #define ERROR (-1)
 
+// size for num rep. arr.
+#define SIZE 2
+
 typedef uint64_t u64;
 typedef uint8_t u8;
 
@@ -19,7 +22,7 @@ struct md_bf {
 
 typedef struct number {
   int wordsize;           // wordsize for the bitstring
-  u64 num;                // stores bitstring (only conisider [wordsize] LSB's
+  u64 num[SIZE];             // stores bitstring (only conisider [wordsize] LSB's
   struct md_bf metadata;  // stores number metadata about overflow, etc
 } number_t;
 
