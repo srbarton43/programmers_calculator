@@ -8,7 +8,4 @@ int max(int a, int b);
 // return min(a,b)
 int min(int a, int b);
 
-// 0 if equal
-int is_equal(number_t *num, number_t correct);
-
 #endif

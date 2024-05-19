@@ -15,16 +15,7 @@ typedef uint8_t u8;
 
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
-struct md_bf {
-  unsigned int UNSIGNED_OVERFLOW  : 1;
-  unsigned int SIGNED_OVERFLOW    : 1;
-};
-
-typedef struct number {
-  int wordsize;           // wordsize for the bitstring
-  u64 num[SIZE];             // stores bitstring (only conisider [wordsize] LSB's
-  struct md_bf metadata;  // stores number metadata about overflow, etc
-} number_t;
+typedef struct number number_t;   // opaque to users of this module
 
 extern number_t _zero_;
 extern number_t _one_;
@@ -164,6 +155,12 @@ int ones_comp(number_t *out, number_t *num, int wordsize);
  *      number->wordsize = wordsize
  */
 int twos_comp(number_t *out, number_t *num, int wordsize);
+
+// returns 1 if a > b
+// zero otherwise
+int greater_than(number_t *a, number_t *b);
+
+int lesser_than(number_t *a, number_t *b);
 
 /************** ADD ***********************/
 /*
