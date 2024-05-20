@@ -71,6 +71,10 @@ void number_print(number_t *number);
  */
 void delete_number(number_t *number);
 
+void print_decimal(number_t *number);
+
+void print_signed_decimal(number_t *number);
+
 /*
  * copies number param
  *
@@ -90,8 +94,6 @@ void delete_number(number_t *number);
  *    params aren't modified
  */
 int copy_number(number_t *new, number_t *old, int wordsize);
-
-int numbers_are_equal(number_t *a, number_t *b);
 
 /**********     FREE_NUMBERS     ********/
 /*
@@ -158,9 +160,9 @@ int twos_comp(number_t *out, number_t *num, int wordsize);
 
 // returns 1 if a > b
 // zero otherwise
-int greater_than(number_t *a, number_t *b);
+int greater_than(const number_t *a, const number_t *b);
 
-int lesser_than(number_t *a, number_t *b);
+int lesser_than(const number_t *a, const number_t *b);
 
 /************** ADD ***********************/
 /*

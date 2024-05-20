@@ -1,10 +1,10 @@
-run_command('cp', '-rf', 'inputs', meson.global_build_root() / 'test' / 'unittests', check : true)
-
 unittest_sources += files('unittest_utils.c')
 unittest_lib = library('unittest_lib',
                            unittest_sources,
                            include_directories : inc,
                            c_args : ['-DUNIT_TEST', '-DDEBUG'] )
+
+run_command('cp', '-rf', 'inputs', meson.global_build_root() / 'test' / 'unittests', check : true)
 
 test_addition_exe = executable( 'test_addition', 'addition.c',
   include_directories : inc,
@@ -20,26 +20,12 @@ test_subtraction_exe = executable( 'test_subtraction', 'subtraction.c',
 
 test('subtraction', test_subtraction_exe)
 
-test_shifts_exe = executable( 'test_shifts', 'shifts.c',
-  include_directories : inc,
-  link_with : unittest_lib,
-  c_args : '-DUNIT_TEST' )
-
-test('lshift and rshift', test_shifts_exe)
-
 test_twos_comp_exe = executable( 'test_twos_comp', 'twos_comp.c',
   include_directories : inc,
   link_with : unittest_lib,
   c_args : '-DUNIT_TEST' )
 
 test('twos_comp', test_twos_comp_exe)
-
-#test_copy_num_exe = executable( 'test_copy_number', 'copy_number.c',
-#  include_directories : inc,
-#  link_with : unittest_lib,
-#  c_args : '-DUNIT_TEST' )
-#
-#test('copy_number', test_copy_num_exe)
 
 test_and_exe = executable( 'test_and', 'and.c',
   include_directories : inc,
@@ -55,9 +41,24 @@ test_or_exe = executable( 'test_or', 'or.c',
 
 test('bitwise OR', test_or_exe)
 
-# test_wide_exe = executable( 'test_wide', 'wide.c',
-#   include_directories : inc,
-#   link_with : unittest_lib,
-#   c_args : ['-DUNIT_TEST', '-DDEBUG'] )
-#
-# test('wide number', test_wide_exe)
+test_wide_exe = executable( 'test_wide', 'wide.c',
+  include_directories : inc,
+  link_with : unittest_lib,
+  c_args : ['-DUNIT_TEST', '-DDEBUG'] )
+
+test('wide number', test_wide_exe)
+
+test_dec_print = executable( 'test_decimal', 'print.c',
+  include_directories : inc,
+  link_with : unittest_lib )
+test('test_dec', test_dec_print)
+
+test_lshift = executable( 'test_lshift', 'lshift.c',
+  include_directories : inc,
+  link_with : unittest_lib)
+test('test_lshift', test_lshift, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'lshift.txt' )
+
+test_rshift = executable( 'test_rshift', 'rshift.c',
+  include_directories : inc,
+  link_with : unittest_lib)
+test('test_rshift', test_rshift, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'rshift.txt' )

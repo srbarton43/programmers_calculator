@@ -8,23 +8,27 @@
 #define MASK get_max_unsigned(wordsize)
 // size for num rep. arr.
 #define WIDTH 64
-#define SIZE_BYTES SIZE*WIDTH/8
-#define ZERO(ws) {ws, {0}, {0}}
+#define SIZE_BYTES SIZE *WIDTH / 8
+#define ZERO(ws)                                                               \
+  {                                                                            \
+    ws, {0}, { 0 }                                                             \
+  }
 
 // bitfield for number metadata
 struct md_bf {
-  unsigned int UNSIGNED_OVERFLOW  : 1;
-  unsigned int SIGNED_OVERFLOW    : 1;
+  unsigned int UNSIGNED_OVERFLOW : 1;
+  unsigned int SIGNED_OVERFLOW : 1;
 };
 
 typedef struct number {
-  int wordsize;           // wordsize for the bitstring
-  u64 num[SIZE];             // stores bitstring (only conisider [wordsize] LSB's
-  struct md_bf metadata;  // stores number metadata about overflow, etc
+  int wordsize;          // wordsize for the bitstring
+  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
+  struct md_bf metadata; // stores number metadata about overflow, etc
 } number_t;
 
 number_t _zero_ = {1, {0}, {0, 0}};
-number_t _one_ = {2, {0,1}, {0, 0}};
+number_t _one_ = {2, {0, 1}, {0, 0}};
+static const number_t MAX_DECIMAL = {128, {0x4ee2d6d415b, 0x85acef80ffffffff}, { 0, 0 } };
 
 static void print_u64(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
@@ -33,16 +37,20 @@ static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out);
 static int decstring_to_u64(const char *decstring, int wordsize, u64 *out);
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
+static int compare(const number_t *a, const number_t *b);
 static u64 get_max_unsigned(int wordsize);
 static u64 get_max_number(number_t *out, int wordsize);
+static int zero_number(number_t *out);
 
+// TODO: cannot get max hex bcd representation
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   if (number == NULL) {
     perror("null number string");
     return ERROR;
   }
 #ifdef DEBUG
-  printf("%s: type=%d, number=%s, wordsize=%d\n", __FUNCTION__, type, number, wordsize);
+  printf("%s: type=%d, number=%s, wordsize=%d\n", __FUNCTION__, type, number,
+         wordsize);
 #endif
   number_t *new_num = out;
   memset(new_num, 0, sizeof(number_t));
@@ -66,12 +74,12 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
       u64 raw_decimal[SIZE] = {0};
       break;
       if (ERROR == decstring_to_u64(number, wordsize, raw_decimal))
-          new_num->metadata.UNSIGNED_OVERFLOW = 1;
-      //if ((wordsize == 64 && raw_decimal > UINT64_MAX) ||
-      //    (wordsize < 64 && raw_decimal > (1ULL << wordsize) - 1ULL))
-      //  new_num->metadata.UNSIGNED_OVERFLOW = 1;
-      //else if (raw_decimal & 1ULL << (wordsize - 1))
-      //  new_num->metadata.SIGNED_OVERFLOW = 1;
+        new_num->metadata.UNSIGNED_OVERFLOW = 1;
+      // if ((wordsize == 64 && raw_decimal > UINT64_MAX) ||
+      //     (wordsize < 64 && raw_decimal > (1ULL << wordsize) - 1ULL))
+      //   new_num->metadata.UNSIGNED_OVERFLOW = 1;
+      // else if (raw_decimal & 1ULL << (wordsize - 1))
+      //   new_num->metadata.SIGNED_OVERFLOW = 1;
       memcpy(new_num->num, raw_decimal, SIZE_BYTES);
       // new_num->num = raw_decimal & MASK;
       break;
@@ -97,7 +105,8 @@ static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
   int i;
   for (i = 1; i <= wordsize; i++) {
     if (i <= slen) {
-      num[SIZE - (i-1) / WIDTH - 1] |= (u64)(bitstring[slen - i] - '0') << (i-1) % WIDTH;
+      num[SIZE - (i - 1) / WIDTH - 1] |= (u64)(bitstring[slen - i] - '0')
+                                         << (i - 1) % WIDTH;
     }
   }
   if (i <= slen) {
@@ -118,7 +127,7 @@ static int decstring_to_u64(const char *decstring, int wordsize, u64 *out) {
   printf("slen=%d\n", slen);
   for (int i = slen - 1; i >= 0; i--) {
     c = decstring[i];
-    sum += factor*(c-'0');
+    sum += factor * (c - '0');
     if (sum > get_max_unsigned(wordsize)) {
 #ifdef DEBUG
       printf("Decimal bigger than wordsize\n");
@@ -139,7 +148,8 @@ static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out) {
 
   for (i = 1; i <= slen && i <= wordsize; i++) {
     nibble = get_nibble_val(hexstring[slen - i]);
-    num[SIZE - (i*4)/WIDTH - 1] |= nibble << (u64)((4ULL * ((u64)i - 1ULL)) % WIDTH);
+    num[SIZE - (i * 4) / WIDTH - 1] |=
+        nibble << (u64)((4ULL * ((u64)i - 1ULL)) % WIDTH);
   }
 
   // TODO actually think about this logic
@@ -175,17 +185,17 @@ static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
   return SUCCESS;
 }
 
-//int number_getSdec(int64_t *out, number_t *number) {
-//  int ws = number->wordsize;
-//  u64 num = number->num;
-//  if ((num & (1ULL << (ws - 1ULL))) < 1ULL) {
-//    *out = (int64_t)num;
-//    return SUCCESS;
-//  }
-//  u64 mask = (1ULL << (ws - 1)) - 1ULL;
-//  *out = -(1ULL << (ws - 1ULL)) + (num & mask);
-//  return SUCCESS;
-//}
+// int number_getSdec(int64_t *out, number_t *number) {
+//   int ws = number->wordsize;
+//   u64 num = number->num;
+//   if ((num & (1ULL << (ws - 1ULL))) < 1ULL) {
+//     *out = (int64_t)num;
+//     return SUCCESS;
+//   }
+//   u64 mask = (1ULL << (ws - 1)) - 1ULL;
+//   *out = -(1ULL << (ws - 1ULL)) + (num & mask);
+//   return SUCCESS;
+// }
 
 void delete_number(number_t *number) {
   if (number) {
@@ -199,16 +209,24 @@ void number_print(number_t *number) {
   printf("--------------\n");
 #ifdef DEBUG
   printf("NUMBER %p\n", number);
+  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u } }\n", number->wordsize,
+         number->num[0], number->num[1], number->metadata.SIGNED_OVERFLOW,
+         number->metadata.UNSIGNED_OVERFLOW);
 #endif
   printf("WORDSIZE %d\n", number->wordsize);
-  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u } }\n", number->wordsize, number->num[0], number->num[1], number->metadata.SIGNED_OVERFLOW, number->metadata.UNSIGNED_OVERFLOW);
   printf("BITSTRING: ");
   print_u64(number->num, number->wordsize);
   printf("\n");
-  //int64_t sdec = 0;
-  //number_getSdec(&sdec, number);
-  //printf("Integer Value: %lld\n", (long long)sdec);
-  //printf("Unsigned Integer Value: %llu\n", (unsigned long long)number->num);
+  printf("Integer Value: ");
+  print_signed_decimal(number);
+  printf("\n");
+  printf("Unsigned Integer Value: ");
+  print_decimal(number);
+  printf("\n");
+  // int64_t sdec = 0;
+  // number_getSdec(&sdec, number);
+  // printf("Integer Value: %lld\n", (long long)sdec);
+  // printf("Unsigned Integer Value: %llu\n", (unsigned long long)number->num);
   printf("Hexadecimal Value: ");
   print_hex(number->num, number->wordsize);
   printf("\n");
@@ -218,18 +236,19 @@ void number_print(number_t *number) {
 static void print_u64(u64 *num, int wordsize) {
   printf("0b");
   for (int i = 1; i <= wordsize; i++) {
-    u64 mask = 1ULL << (wordsize - i)%WIDTH;
-    printf("%c", '0' + ((num[SIZE - (wordsize - i) / WIDTH - 1]  & mask) > 0));
+    u64 mask = 1ULL << (wordsize - i) % WIDTH;
+    printf("%c", '0' + ((num[SIZE - (wordsize - i) / WIDTH - 1] & mask) > 0));
   }
 }
 
 static void print_hex(u64 *num, int wordsize) {
   printf("0x");
   u64 nibble, mask;
-  int round_up = ((wordsize-1) / 4 + 1)* 4;
+  int round_up = ((wordsize - 1) / 4 + 1) * 4;
   for (int i = 1; i <= round_up; i += 4) {
-    mask = 0xfULL << (round_up - i - 3)%WIDTH;
-    nibble = (mask & num[SIZE - (wordsize - i)/WIDTH - 1]) >> (round_up - i-3);
+    mask = 0xfULL << (round_up - i - 3) % WIDTH;
+    nibble =
+        (mask & num[SIZE - (wordsize - i) / WIDTH - 1]) >> (round_up - i - 3);
     if (nibble > 15)
       printf("wtf\n");
     else if (nibble > 9)
@@ -256,16 +275,19 @@ int copy_number(number_t *out, number_t *number, int wordsize) {
 int ones_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
+  number_t temp = *num;
+  zero_number(out);
   out->wordsize = wordsize;
   for (int i = 0; i < SIZE; i++)
-    out->num[i] = ~num->num[i];
+    out->num[i] = ~temp.num[i];
   return SUCCESS;
 }
 
 int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
-  if (num->num[SIZE - (wordsize-1)/WIDTH - 1] != (1ULL << (wordsize - 1)) % WIDTH)
+  if (num->num[SIZE - (wordsize - 1) / WIDTH - 1] !=
+      (1ULL << (wordsize - 1)) % WIDTH)
     bubble_up_overflows(out, num, NULL);
   out->wordsize = wordsize;
   number_t ones;
@@ -279,92 +301,102 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
     perror("Can't add a NULL number(s)");
     return ERROR;
   }
-#ifdef DEBUG
-  printf("asize: %d; bsize: %d, prog_data->ws: %d\n", a->wordsize, b->wordsize,
-         wordsize);
-#endif
   out->wordsize = wordsize;
   int carry_out = 0;
   for (int i = SIZE - 1; i >= 0; i--) {
     out->num[i] = a->num[i] + b->num[i] + carry_out;
-    carry_out = a->num[i] ? out->num[i] <= b->num[i] + carry_out : out->num[i] < b->num[i] + carry_out;
+    carry_out = a->num[i] ? out->num[i] <= b->num[i] + carry_out
+                          : out->num[i] < b->num[i] + carry_out;
   }
-  //out->num = (a->num + b->num) & MASK;
+  // out->num = (a->num + b->num) & MASK;
   bubble_up_overflows(out, a, b);
-  u64 aMSB = a->num[SIZE - (wordsize - 1) / WIDTH - 1] & (1ULL << (wordsize - 1) % WIDTH);
-  u64 bMSB = b->num[SIZE - (wordsize - 1)/ WIDTH - 1] & (1ULL << (wordsize - 1) % WIDTH);
-  u64 oMSB = out->num[SIZE - (wordsize - 1) / WIDTH - 1] & (1ULL << (wordsize - 1) % WIDTH);
+  u64 aMSB = a->num[SIZE - (wordsize - 1) / WIDTH - 1] &
+             (1ULL << (wordsize - 1) % WIDTH);
+  u64 bMSB = b->num[SIZE - (wordsize - 1) / WIDTH - 1] &
+             (1ULL << (wordsize - 1) % WIDTH);
+  u64 oMSB = out->num[SIZE - (wordsize - 1) / WIDTH - 1] &
+             (1ULL << (wordsize - 1) % WIDTH);
   if ((oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB))
     out->metadata.SIGNED_OVERFLOW = 1;
   return SUCCESS;
 }
 
 int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
-  printf("line=%d\n", __LINE__);
   number_t neg_a = {0};
   neg_a.wordsize = a->wordsize;
-  printf("line=%d\n", __LINE__);
   if (ERROR == twos_comp(&neg_a, a, a->wordsize))
     return ERROR;
-  printf("line=%d\n", __LINE__);
   if (ERROR == add(out, b, &neg_a, wordsize))
     return ERROR;
-  printf("line=%d\n", __LINE__);
   return SUCCESS;
 }
 
 int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
- bubble_up_overflows(out, number, positions);
- // check for unsigned overflows
- u64 lshift = positions->num[SIZE - 1];
- number_t max_num = ZERO(wordsize), shift_max_num = ZERO(wordsize);
- get_max_number(&max_num, wordsize);
- rshift(&shift_max_num, &max_num, positions, wordsize);
- if (greater_than(number, &shift_max_num)) {
+  number_t stk_num = *number;
+  zero_number(out);
+  bubble_up_overflows(out, &stk_num, positions);
+  // check for unsigned overflows
+  u64 lshift = positions->num[SIZE - 1];
+  number_t max_num = ZERO(wordsize), shift_max_num = ZERO(wordsize);
+  get_max_number(&max_num, wordsize);
+  rshift(&shift_max_num, &max_num, positions, wordsize);
+  if (greater_than(&stk_num, &shift_max_num)) {
 #ifdef DEBUG
-   printf("%s: unsigned overflow w/ num=\n", __FUNCTION__);
-   number_print(number);
-   printf("shift=\n");
-   number_print(positions);
+    // printf("%s: unsigned overflow w/ num=\n", __FUNCTION__);
+    // number_print(&stk_num);
+    // printf("shift=\n");
+    // number_print(positions);
 #endif
-   out->metadata.UNSIGNED_OVERFLOW = 1;
- }
- out->wordsize = wordsize;
- u64 shift_in = 0;
- for (int i = SIZE-1; i >= 0; i--) {
-   out->num[i] = (number->num[i] << lshift) | (shift_in >> (WIDTH - lshift));
-   shift_in = (((1ULL << lshift) - 1) << (WIDTH - lshift)) & number->num[i];
- }
- return SUCCESS;
+    out->metadata.UNSIGNED_OVERFLOW = 1;
+  }
+  out->wordsize = wordsize;
+  u64 shift_in = 0;
+  for (int i = SIZE - 1; i >= (int)(0 + lshift / WIDTH); i--) {
+#ifdef DEBUG
+    // printf("shift_in=%llx\n", shift_in);
+    // printf("index = %d\n", i-(int)lshift/WIDTH);
+    // printf("shifted=%llx\n", (stk_num.num[i] << lshift % WIDTH) | (shift_in >> ((WIDTH - lshift) % WIDTH)));
+#endif
+    out->num[i-(int)lshift/WIDTH] = (stk_num.num[i] << lshift % WIDTH) | (shift_in >> ((WIDTH - lshift) % WIDTH));
+    shift_in = (((1ULL << lshift) - 1) << (WIDTH - lshift)) & stk_num.num[i];
+  }
+  return SUCCESS;
 }
 
 int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
-  bubble_up_overflows(out, number, positions);
-  // TODO this doesnt work for more than 64
+  // make sure to zero out the most significant bits
+  number_t stk_num = *number;
+  number_t mask = {0};
+  get_max_number(&mask, wordsize);
+  and(&stk_num, number, &mask, wordsize);
+  zero_number(out);
+  bubble_up_overflows(out, &stk_num, positions);
   // TODO: use get_dec eventually
   u64 rshift = positions->num[SIZE - 1];
-  if (rshift >= SIZE * WIDTH) {
+  if (rshift >= wordsize || rshift >= SIZE * WIDTH) {
 #ifdef DEBUG
-      printf("%s: shifting_value=0x%llx is greater than max number of bits\n", __FUNCTION__, rshift);
+    printf("%s: shifting_value=0x%llx is greater than max number of bits\n",
+           __FUNCTION__, rshift);
 #endif
-      memset(out->num, 0, SIZE_BYTES);
+    memset(out->num, 0, SIZE_BYTES);
+    return SUCCESS;
   }
   out->wordsize = wordsize;
-  // make sure to zero out the most significant bits
-  u64 new = 0;
-  out->num[0] = (number->num[0] & ((1ULL << wordsize % WIDTH) - 1)) >> rshift;
-  u64 shift_in = number->num[0] & ((1ULL << rshift) - 1);
-  for (int i = 1; i < SIZE; i++) {
-    new = number->num[i] >> rshift;
-    new |= shift_in << (WIDTH - rshift);
-    shift_in = number->num[i] & ((1ULL << rshift) - 1);
-    out->num[i] = new;
+  u64 shift_in = 0;
+  for (int i = 0; i < SIZE - rshift / WIDTH; i++) {
+#ifdef DEBUG
+    // printf("shift_in=%llx\n", shift_in);
+    // printf("index = %d\n", i-(int)rshift/WIDTH);
+    // printf("shifted=%llx\n", (stk_num.num[i] >> rshift % WIDTH) | (shift_in << ((WIDTH - rshift) % WIDTH)));
+#endif
+    out->num[i + rshift / WIDTH] = stk_num.num[i] >> rshift | shift_in << (WIDTH - rshift);
+    shift_in = stk_num.num[i] & ((1ULL << rshift % WIDTH)-1);
   }
   return SUCCESS;
 }
 
 /*         compare        */
-static int compare(number_t *a, number_t *b) {
+static int compare(const number_t *a, const number_t *b) {
   if (!a || !b) {
     printf("%s: null param\n", __FUNCTION__);
     return 0;
@@ -379,9 +411,17 @@ static int compare(number_t *a, number_t *b) {
   return 0;
 }
 
-int greater_than(number_t *a, number_t *b) {
-  return 1 == compare(a, b);
+int greater_than(const number_t *a, const number_t *b) { return 1 == compare(a, b); }
+
+static int zero_number(number_t *out) {
+  if (!out)
+    return ERROR;
+  for (int i = 0; i < SIZE; i++) {
+    out->num[i] = 0;
+  }
+  return SUCCESS;
 }
+
 
 /*           and             */
 int and (number_t * out, number_t *a, number_t *b, int wordsize) {
@@ -404,21 +444,6 @@ int or (number_t * out, number_t *a, number_t *b, int wordsize) {
   return SUCCESS;
 }
 
-int numbers_are_equal(number_t *a, number_t *b) {
-  for (int i = 0; i < SIZE; i++) {
-    if (a->num[i] != b->num[i]) {
-#ifdef UNIT_TEST
-      printf("CASE FAILED\n");
-#endif
-      return 1;
-    }
-  }
-#ifdef UNIT_TEST
-  printf("CASE PASSED\n");
-#endif
-  return 0;
-}
-
 static u64 get_max_unsigned(int wordsize) {
   if (wordsize < 64)
     return (1ULL << wordsize) - 1ULL;
@@ -430,10 +455,96 @@ static u64 get_max_number(number_t *out, int wordsize) {
   int current_ws = wordsize;
   int n_ptr = SIZE - 1;
   while (current_ws > 0) {
-    out->num[n_ptr--] = current_ws >= WIDTH ? UINT64_MAX : (1ULL << current_ws) - 1;
+    out->num[n_ptr--] =
+        current_ws >= WIDTH ? UINT64_MAX : (1ULL << current_ws) - 1;
     current_ws -= WIDTH;
   }
   return SUCCESS;
+}
+
+void print_signed_decimal(number_t *number) {
+  int ws = number->wordsize;
+  if ((1ULL << (ws - 1) % WIDTH & number->num[SIZE - ws / WIDTH - 1]) > 0) {
+    // negative number
+    number_t pos_comp = ZERO(ws);
+    pos_comp.num[SIZE - ws / WIDTH - 1] |= (1ULL << (ws - 1) % WIDTH);
+    number_t neg_comp = *number;
+    number_t mask;
+    number_t shift = {8, {0, ws - 1}, {0}};
+    lshift(&mask, &_one_, &shift, ws); 
+    sub(&mask, &_one_, &mask, ws);
+    and(&neg_comp, number, &mask, ws);
+    number_t sum = ZERO(ws);
+    sub(&sum, &neg_comp, &pos_comp, ws);
+    printf("-");
+    print_decimal(&sum);
+  } else {
+    // positive number
+    print_decimal(number);
+  }
+}
+  
+void print_decimal(number_t *number) {
+  if (greater_than(number, &MAX_DECIMAL)) {
+    printf("Too large.");
+    return;
+  }
+  number_t scratch = ZERO(SIZE * WIDTH);
+  number_t cloned = *number;
+  if (0 == compare(&cloned, &_zero_)) {
+    printf("0");
+    fflush(stdout);
+    return;
+  }
+  number_t six_four = {8, {0, 64}, {0}};
+  cloned.wordsize = SIZE * WIDTH;
+  int n_chunks = SIZE;
+  while (cloned.num[0] == 0) {
+    lshift(&cloned, &cloned, &six_four, cloned.wordsize);
+    n_chunks--;
+  }
+  u64 bits, new_chunk;
+
+  for (int i = 0; i < n_chunks*WIDTH; i++) {
+    lshift(&scratch, &scratch, &_one_, scratch.wordsize);
+
+    if ((cloned.num[0] & (1ULL << 63)) > 0) {
+      scratch.num[SIZE - 1] |= 1;
+    }
+
+    if (i == (n_chunks * 64) - 1)
+      break;
+
+    for (int j = SIZE - 1; j >= 0; j--) {
+      if (scratch.num[j] == 0)
+        continue;
+      new_chunk = 0;
+      for (int k = 60; k >= 0; k-=4) {
+        bits = (scratch.num[j] & (0b1111ULL << k)) >> k;
+        if (bits >= 5)
+          bits += 3ULL;
+        new_chunk <<= 4;
+        new_chunk += bits;
+      }
+      scratch.num[j] = new_chunk;
+    }
+    lshift(&cloned, &cloned, &_one_, cloned.wordsize);
+  }
+#ifdef DEBUG
+#endif
+  int start = 0;
+  for (int i = 0; i < SIZE; i++) {
+    if (scratch.num[i] == 0)
+      continue;
+    for (int j = 60; j >= 0; j-=4) {
+      bits = (scratch.num[i] & (0xfULL << j)) >> j;
+      if (!start && bits == 0)
+        continue;
+      if (!start)
+        start = 1;
+      printf("%llu", bits);
+    }
+  }
 }
 
 /***********************************/
@@ -450,7 +561,10 @@ int isEqualToBitstring(number_t *n, char *s) {
   int len = strlen(s);
 
   for (int i = 1; i <= len; i++) {
-    if ((n->num[SIZE - (n->wordsize - i - 1) / WIDTH - 1] & (1ULL << (i - 1) % WIDTH)) >> (i - 1) % WIDTH != s[len - i] - '0') {
+    if ((n->num[SIZE - (n->wordsize - i - 1) / WIDTH - 1] &
+         (1ULL << (i - 1) % WIDTH)) >>
+            (i - 1) % WIDTH !=
+        s[len - i] - '0') {
       printf("%s: incorrect %d-th bit\n", __FUNCTION__, i);
       return 1;
     }
@@ -482,29 +596,29 @@ int test_twos_comp(char *num, char *expected, int wordsize, char *msg) {
 }
 
 int test_lshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
- printf("_____ LSHIFT num << pos (%d-bit Numbers) _____\n", wordsize);
- if (msg != NULL)
-   printf("Objective: %s\n", msg);
- number_t p, n, res;
- new_number(&n, BINARY, num, wordsize);
- new_number(&p, BINARY, pos, wordsize);
- printf("num = ");
- print_u64(n.num, wordsize);
- printf("\n");
- printf("pos = ");
- print_u64(p.num, wordsize);
- printf("\n");
- printf("expected num << pos = %s\n", expected);
- lshift(&res, &n, &p, wordsize);
- printf("actual num << pos = ");
- print_u64(res.num, wordsize);
- printf("\n");
- int ret = isEqualToBitstring(&res, expected);
- if (!ret)
-   printf("Test Passed!\n");
- else
-   printf("Test Failed!\n");
- return ret;
+  printf("_____ LSHIFT num << pos (%d-bit Numbers) _____\n", wordsize);
+  if (msg != NULL)
+    printf("Objective: %s\n", msg);
+  number_t p, n, res;
+  new_number(&n, BINARY, num, wordsize);
+  new_number(&p, BINARY, pos, wordsize);
+  printf("num = ");
+  print_u64(n.num, wordsize);
+  printf("\n");
+  printf("pos = ");
+  print_u64(p.num, wordsize);
+  printf("\n");
+  printf("expected num << pos = %s\n", expected);
+  lshift(&res, &n, &p, wordsize);
+  printf("actual num << pos = ");
+  print_u64(res.num, wordsize);
+  printf("\n");
+  int ret = isEqualToBitstring(&res, expected);
+  if (!ret)
+    printf("Test Passed!\n");
+  else
+    printf("Test Failed!\n");
+  return ret;
 }
 
 int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
@@ -560,27 +674,28 @@ int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
   return ret;
 }
 
-//int test_copy_number(char *num, int iws, int ows, char *expected, char *msg) {
-//  printf("_____ COPY num (%d-bit -> %d-bit) _____\n", iws, ows);
-//  if (msg != NULL)
-//    printf("Objective: %s\n", msg);
-//  number_t n, new_n;
-//  new_number(&n, BINARY, num, iws);
-//  printf("num = ");
-//  print_u64(n.num, iws);
-//  printf("\n");
-//  printf("expected new_num = %s\n", expected);
-//  copy_number(&new_n, &n, ows);
-//  printf("actual new_num = ");
-//  print_u64(new_n.num, ows);
-//  printf("\n");
-//  int ret = isEqualToBitstring(&new_n, expected);
-//  if (!ret)
-//    printf("Test Passed!\n");
-//  else
-//    printf("Test Failed :(\n");
-//  return ret;
-//}
+// int test_copy_number(char *num, int iws, int ows, char *expected, char *msg)
+// {
+//   printf("_____ COPY num (%d-bit -> %d-bit) _____\n", iws, ows);
+//   if (msg != NULL)
+//     printf("Objective: %s\n", msg);
+//   number_t n, new_n;
+//   new_number(&n, BINARY, num, iws);
+//   printf("num = ");
+//   print_u64(n.num, iws);
+//   printf("\n");
+//   printf("expected new_num = %s\n", expected);
+//   copy_number(&new_n, &n, ows);
+//   printf("actual new_num = ");
+//   print_u64(new_n.num, ows);
+//   printf("\n");
+//   int ret = isEqualToBitstring(&new_n, expected);
+//   if (!ret)
+//     printf("Test Passed!\n");
+//   else
+//     printf("Test Failed :(\n");
+//   return ret;
+// }
 
 int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
              char *msg) {
@@ -616,7 +731,7 @@ int test_and(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   printf("_____ AND a&b (%d-bit - %d-bit) _____\n", aWs, bWs);
   if (msg != NULL)
     printf("Objective: %s\n", msg);
-  number_t a, b, anded;
+  number_t a = {0}, b = {0}, anded = {0};
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("b = ");
