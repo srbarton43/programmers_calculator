@@ -15,10 +15,8 @@ typedef uint8_t u8;
 
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
-typedef struct number number_t;   // opaque to users of this module
 
-extern number_t _zero_;
-extern number_t _one_;
+typedef struct number number_t;   // opaque to users of this module
 
 /************** FUNCTIONS *******************/
 
@@ -164,6 +162,8 @@ int greater_than(const number_t *a, const number_t *b);
 
 int lesser_than(const number_t *a, const number_t *b);
 
+int equal_to(const number_t *a, const number_t *b);
+
 /************** ADD ***********************/
 /*
  * adds two numbers together
@@ -190,6 +190,12 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize);
  * subtract a from b
  */
 int sub(number_t *out, number_t *a, number_t *b, int wordsize);
+
+/***************** DIVIDE and MOD ***********************/
+//int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+//int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+//
+//int multiply(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /************** LSHIFT ***********************/
 /*

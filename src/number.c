@@ -13,6 +13,8 @@
   {                                                                            \
     ws, {0}, { 0 }                                                             \
   }
+#define LOW_32(x) (x & 0xffffffff)
+#define HIGH_32(x) (x >> 32)
 
 // bitfield for number metadata
 struct md_bf {
@@ -28,7 +30,18 @@ typedef struct number {
 
 number_t _zero_ = {1, {0}, {0, 0}};
 number_t _one_ = {2, {0, 1}, {0, 0}};
-static const number_t MAX_DECIMAL = {128, {0x4ee2d6d415b, 0x85acef80ffffffff}, { 0, 0 } };
+static const number_t MAX_DECIMAL = {
+    128, {0x4ee2d6d415b, 0x85acef80ffffffff}, {0, 0}};
+
+static int u64_multiply(u64 *const high_dig, u64 *const low_dig, u64 a, u64 b);
+static u64 u64_half_adder(u64 a, u64 b, u64 *const carry);
+static u64 u64_full_adder(u64 a, u64 b, u64 carry_in, u64 *const carry_out);
+static int get_num_digits(int size, u64 *number);
+
+int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+static int div_and_mod(number_t *quotient, number_t *modulus, number_t *divisor,
+                       number_t *dividend, int wordsize);
 
 static void print_u64(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
@@ -39,8 +52,9 @@ static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
 static int compare(const number_t *a, const number_t *b);
 static u64 get_max_unsigned(int wordsize);
-static u64 get_max_number(number_t *out, int wordsize);
+static int get_max_number(number_t *out, int wordsize);
 static int zero_number(number_t *out);
+static number_t construct_number(int wordsize, u64 *arr); // where arr is terminated by elem=0
 
 // TODO: cannot get max hex bcd representation
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
@@ -331,6 +345,178 @@ int sub(number_t *out, number_t *a, number_t *b, int wordsize) {
   return SUCCESS;
 }
 
+static int get_num_digits(int size, u64 *number) {
+  int digits = size;
+  for (int i = 0; i < size; i++) {
+    if (number[i] == 0)
+      digits--;
+    else
+      break;
+  }
+  return digits;
+}
+
+static u64 u64_half_adder(u64 a, u64 b, u64 *const carry) {
+  u64 result = a + b;
+  *carry += (result < a ? 1 : 0);
+  return result;
+}
+
+static int u64_multiply(u64 *const high_dig, u64 *const low_dig, u64 a, u64 b) {
+  if (!a || !b) {
+    *high_dig = 0;
+    *low_dig = 0;
+    return SUCCESS;
+  }
+
+  u64 a0 = LOW_32(a), a1 = HIGH_32(a);
+  u64 b0 = LOW_32(b), b1 = HIGH_32(b);
+
+  u64 a0b0 = a0 * b0;
+  u64 a1b0 = a1 * b0;
+  u64 a0b1 = a0 * b1;
+  u64 a1b1 = a1 * b1;
+
+  u64 c0 = 0, c1 = 0;
+
+  u64 middle_part = u64_half_adder(a0b1, a1b0, &c1);
+
+  *low_dig = u64_half_adder(a0b0, LOW_32(middle_part) << 32, &c0);
+  *high_dig = a1b1 + HIGH_32(middle_part) + (c1 << 32) + c0;
+
+  return SUCCESS;
+}
+
+int multiply(number_t *out, number_t *a, number_t *b, int wordsize) {
+
+  if (!out || !a || !b)
+    return ERROR;
+
+  number_t *big, *small;
+  u64 carry_in_mult = 0, carry_out_mult, out_digit;
+  int aDigits = get_num_digits(SIZE, a->num);
+  int bDigits = get_num_digits(SIZE, b->num);
+
+  if (aDigits > bDigits) {
+    big = a;
+    small = b;
+  } else {
+    big = b;
+    small = a;
+  }
+
+  // calculate the intermediate multiplications into a 2d array
+  u64 intermediate_numbers[SIZE][SIZE * 2] = {0};
+  for (int i = SIZE - 1; i >= SIZE - get_num_digits(SIZE, small->num); i--) {
+    for (int j = SIZE - 1; j >= SIZE - get_num_digits(SIZE, big->num); j--) {
+      carry_out_mult = 0;
+      u64_multiply(&carry_out_mult, &out_digit, small->num[i], big->num[j]);
+      intermediate_numbers[SIZE - i - 1][i + j + 1] =
+          u64_half_adder(out_digit, carry_in_mult, &carry_out_mult);
+      carry_in_mult = carry_out_mult;
+    }
+    // carry out
+    intermediate_numbers[SIZE - i - 1]
+                        [i + (SIZE - get_num_digits(SIZE, big->num))] =
+                            carry_out_mult;
+  }
+
+#ifdef DEBUG
+  printf("intermediate numbers: \n{\n");
+  for (int i = 0; i < SIZE; i++) {
+    printf("{ ");
+    for (int j = 0; j < 2 * SIZE; j++) {
+      printf("%llx, ", intermediate_numbers[i][j]);
+    }
+    printf("}\n");
+  }
+  printf("}\n");
+#endif
+
+  // sum up the intermediate numbers
+  u64 result[2 * SIZE] = {0};
+  u64 carry_in_add = 0, carry_out_add = 0, vert_sum = 0;
+  for (int j = 2 * SIZE - 1; j >= 0; j--) {
+    vert_sum = 0, carry_out_add = 0;
+    for (int i = 0; i < SIZE; i++) {
+      vert_sum += u64_half_adder(intermediate_numbers[i][j], carry_in_add,
+                                 &carry_out_add);
+      carry_in_add = 0;
+    }
+    carry_in_add = carry_out_add;
+    result[j] = vert_sum;
+  }
+
+#ifdef DEBUG
+  printf("result: \n{ ");
+  for (int i = 0; i < 2 * SIZE; i++) {
+    printf("%llx, ", result[i]);
+  }
+  printf(" }\n");
+#endif
+
+  // read into the output digits array
+  for (int i = 2 * SIZE - 1; i >= SIZE; i--) {
+    out->num[i - SIZE] = result[i];
+  }
+
+  // detect overflow
+  out->wordsize = wordsize;
+  if (get_num_digits(2 * SIZE, result) > SIZE) {
+    out->metadata.UNSIGNED_OVERFLOW = 1;
+  } else {
+    number_t max_number = {0};
+    get_max_number(&max_number, wordsize);
+    if (greater_than(out, &max_number))
+      out->metadata.UNSIGNED_OVERFLOW = 1;
+    else if ((1ULL << (wordsize - 1) % WIDTH &
+              out->num[SIZE - wordsize / WIDTH - 1]) > 0) {
+      out->metadata.SIGNED_OVERFLOW = 1;
+    }
+  }
+
+  return SUCCESS;
+}
+
+static int div_and_mod(number_t *quotient, number_t *remainder,
+                       number_t *divisor, number_t *dividend, int wordsize) {
+  if (!quotient || !remainder || !divisor || !dividend)
+    return ERROR;
+  if (greater_than(divisor, dividend)) {
+    *quotient = _zero_;
+    quotient->wordsize = wordsize;
+    *remainder = *divisor;
+    remainder->wordsize = wordsize;
+  } else if (equal_to(divisor, dividend)) {
+    *quotient = _one_;
+    quotient->wordsize = wordsize;
+    *remainder = _zero_;
+    remainder->wordsize = wordsize;
+  } else {
+    // division algorithm
+  }
+
+  return SUCCESS;
+}
+
+int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize) {
+  number_t quotient = {0};
+  number_t remainder = {0};
+  if (ERROR == div_and_mod(&quotient, &remainder, divisor, dividend, wordsize))
+    return ERROR;
+  *out = quotient;
+  return SUCCESS;
+}
+
+int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize) {
+  number_t quotient = {0};
+  number_t remainder = {0};
+  if (ERROR == div_and_mod(&quotient, &remainder, divisor, dividend, wordsize))
+    return ERROR;
+  *out = remainder;
+  return SUCCESS;
+}
+
 int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   number_t stk_num = *number;
   zero_number(out);
@@ -355,9 +541,12 @@ int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
 #ifdef DEBUG
     // printf("shift_in=%llx\n", shift_in);
     // printf("index = %d\n", i-(int)lshift/WIDTH);
-    // printf("shifted=%llx\n", (stk_num.num[i] << lshift % WIDTH) | (shift_in >> ((WIDTH - lshift) % WIDTH)));
+    // printf("shifted=%llx\n", (stk_num.num[i] << lshift % WIDTH) | (shift_in
+    // >> ((WIDTH - lshift) % WIDTH)));
 #endif
-    out->num[i-(int)lshift/WIDTH] = (stk_num.num[i] << lshift % WIDTH) | (shift_in >> ((WIDTH - lshift) % WIDTH));
+    out->num[i - (int)lshift / WIDTH] =
+        (stk_num.num[i] << lshift % WIDTH) |
+        (shift_in >> ((WIDTH - lshift) % WIDTH));
     shift_in = (((1ULL << lshift) - 1) << (WIDTH - lshift)) & stk_num.num[i];
   }
   return SUCCESS;
@@ -387,10 +576,12 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
 #ifdef DEBUG
     // printf("shift_in=%llx\n", shift_in);
     // printf("index = %d\n", i-(int)rshift/WIDTH);
-    // printf("shifted=%llx\n", (stk_num.num[i] >> rshift % WIDTH) | (shift_in << ((WIDTH - rshift) % WIDTH)));
+    // printf("shifted=%llx\n", (stk_num.num[i] >> rshift % WIDTH) | (shift_in
+    // << ((WIDTH - rshift) % WIDTH)));
 #endif
-    out->num[i + rshift / WIDTH] = stk_num.num[i] >> rshift | shift_in << (WIDTH - rshift);
-    shift_in = stk_num.num[i] & ((1ULL << rshift % WIDTH)-1);
+    out->num[i + rshift / WIDTH] =
+        stk_num.num[i] >> rshift | shift_in << (WIDTH - rshift);
+    shift_in = stk_num.num[i] & ((1ULL << rshift % WIDTH) - 1);
   }
   return SUCCESS;
 }
@@ -411,7 +602,17 @@ static int compare(const number_t *a, const number_t *b) {
   return 0;
 }
 
-int greater_than(const number_t *a, const number_t *b) { return 1 == compare(a, b); }
+int greater_than(const number_t *a, const number_t *b) {
+  return 1 == compare(a, b);
+}
+
+int equal_to(const number_t *a, const number_t *b) {
+  return 0 == compare(a, b);
+}
+
+int lesser_than(const number_t *a, const number_t *b) {
+  return -1 == compare(a, b);
+}
 
 static int zero_number(number_t *out) {
   if (!out)
@@ -421,7 +622,6 @@ static int zero_number(number_t *out) {
   }
   return SUCCESS;
 }
-
 
 /*           and             */
 int and (number_t * out, number_t *a, number_t *b, int wordsize) {
@@ -450,7 +650,7 @@ static u64 get_max_unsigned(int wordsize) {
   return UINT64_MAX;
 }
 
-static u64 get_max_number(number_t *out, int wordsize) {
+static int get_max_number(number_t *out, int wordsize) {
   out->wordsize = wordsize;
   int current_ws = wordsize;
   int n_ptr = SIZE - 1;
@@ -471,7 +671,7 @@ void print_signed_decimal(number_t *number) {
     number_t neg_comp = *number;
     number_t mask;
     number_t shift = {8, {0, ws - 1}, {0}};
-    lshift(&mask, &_one_, &shift, ws); 
+    lshift(&mask, &_one_, &shift, ws);
     sub(&mask, &_one_, &mask, ws);
     and(&neg_comp, number, &mask, ws);
     number_t sum = ZERO(ws);
@@ -483,7 +683,7 @@ void print_signed_decimal(number_t *number) {
     print_decimal(number);
   }
 }
-  
+
 void print_decimal(number_t *number) {
   if (greater_than(number, &MAX_DECIMAL)) {
     printf("Too large.");
@@ -505,7 +705,7 @@ void print_decimal(number_t *number) {
   }
   u64 bits, new_chunk;
 
-  for (int i = 0; i < n_chunks*WIDTH; i++) {
+  for (int i = 0; i < n_chunks * WIDTH; i++) {
     lshift(&scratch, &scratch, &_one_, scratch.wordsize);
 
     if ((cloned.num[0] & (1ULL << 63)) > 0) {
@@ -519,7 +719,7 @@ void print_decimal(number_t *number) {
       if (scratch.num[j] == 0)
         continue;
       new_chunk = 0;
-      for (int k = 60; k >= 0; k-=4) {
+      for (int k = 60; k >= 0; k -= 4) {
         bits = (scratch.num[j] & (0b1111ULL << k)) >> k;
         if (bits >= 5)
           bits += 3ULL;
@@ -536,7 +736,7 @@ void print_decimal(number_t *number) {
   for (int i = 0; i < SIZE; i++) {
     if (scratch.num[i] == 0)
       continue;
-    for (int j = 60; j >= 0; j-=4) {
+    for (int j = 60; j >= 0; j -= 4) {
       bits = (scratch.num[i] & (0xfULL << j)) >> j;
       if (!start && bits == 0)
         continue;
