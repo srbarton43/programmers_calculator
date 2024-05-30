@@ -1,4 +1,6 @@
-# Programmer's Calculator
+# `pc` 
+
+Programmer's Calculator inspired by POSIX `bc`
 
 ## The Vision
 
@@ -29,7 +31,7 @@ meson setup [build_dir] && cd [build_dir] && ninja
 Then run the program using:
 
 ```sh
-./pcalc
+./pc
 ```
 
 ## Testing
@@ -52,10 +54,11 @@ Note that while two numbers can have the same value, if they have _different_ wo
 
 ## Future Plans
 
-- [ ] better grammar
+- [ ] add integration tests
+- [ ] detect 64-bit number overflows
 - [x] better error messages (especially regarding overflows and OOB)
-- [ ] history + use of arrow keys to navigate
-- [ ] ncurses mode?
+- [x] history + use of arrow keys to navigate
 - [ ] rotate operations
 - [ ] 1024-bit wordsize (by storing array of u64)
+- [ ] add documentation for number header
 - [ ] RIIR?

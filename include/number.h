@@ -23,16 +23,8 @@ typedef struct number {
   struct md_bf metadata;  // stores number metadata about overflow, etc
 } number_t;
 
-typedef struct num_flags {
-  unsigned int zero : 1;     // high if zero
-  unsigned int sign : 1;     // high if interpreted as negative
-  unsigned int overflow : 1; // high is there is an overflow
-} num_flags_t;
-
 extern number_t _zero_;
 extern number_t _one_;
-
-num_flags_t global_nums_flag;
 
 /************** FUNCTIONS *******************/
 
@@ -106,12 +98,6 @@ void delete_number(number_t *number);
 int copy_number(number_t *new, number_t *old, int wordsize);
 
 int numbers_are_equal(number_t *a, number_t *b);
-
-/**********     INIT_NUMBERS     ********/
-/*
- * Initializes special numbers
- */
-void init_numbers(void);
 
 /**********     FREE_NUMBERS     ********/
 /*
@@ -256,8 +242,8 @@ int or(number_t *out, number_t *a, number_t *b, int wordsize);
 #ifdef UNIT_TEST
 
 int test_twos_comp(char *num, char *expected, int wordsize, char *msg);
-int test_add(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg);
-int test_sub(char *aS, int aWs, char *bS, int bWs, char *expected, char *msg);
+int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);
+int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);
 int test_copy_number(char *num, int iws, int ows, char *expected, char *msg);
 int test_lshift(char *num, char *pos, char *expected, int wordsize, char *msg);
 int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg);
