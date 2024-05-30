@@ -32,21 +32,19 @@ extern number_t _one_;
 /* Create a New Number
  *
  * params:
+ *    number_t out  := pointer to new number struct as output
  *    type_e type   := enum type of the number_string passed
  *    char* number  := null-terminated string for number
  *    int wordsize  := wordsize for number (max bits allocated)
  *
  * returns:
- *    allocated number_t struct with fields defined
- *    OR NULL if an error
- *
- * caller must:
- *    call delete_number to free the number on the heap
+ *    SUCCESS on success
+ *    ERROR on error
  *
  * caller may:
  *    free param number
  *
- * example: new_number(BINARY, "1101", 9)
+ * example: new_number(&number, BINARY, "1101", 9)
  */
 int new_number(number_t *out, type_e type, const char *number, int wordsize);
 
@@ -143,8 +141,13 @@ char *number_getHex(number_t *number);
  * returns one's complement of num (bitwise not)
  *
  * params:
- *    number_t* num := valid pointer to number int wordsize  := wordsize for
- * return number returns: number_t* number where... number->wordsize = wordsize
+ *    number_t *out := pointer to result number_t
+ *    number_t* num := valid pointer to number 
+ *    int wordsize  := wordsize for
+ *
+ * returns:
+ *    SUCCESS on success
+ *    ERROR on failure
  */
 int ones_comp(number_t *out, number_t *num, int wordsize);
 
@@ -153,12 +156,13 @@ int ones_comp(number_t *out, number_t *num, int wordsize);
  * returns two's complement of num (integer negation)
  *
  * params:
+ *    number_t* out := pointer to output number
  *    number_t* num := valid pointer to number
  *    int wordsize  := wordsize for return number
  *
  * returns:
- *    number_t* number where...
- *      number->wordsize = wordsize
+ *    SUCCESS on success
+ *    ERROR on failure
  */
 int twos_comp(number_t *out, number_t *num, int wordsize);
 
@@ -167,19 +171,15 @@ int twos_comp(number_t *out, number_t *num, int wordsize);
  * adds two numbers together
  *
  * params:
- *    number_t* a := pointer to number
- *    number_t* b := pointer to number
- *    (a and b must have same wordsize)
+ *    number_t *out := pointer to output number
+ *    number_t* a   := pointer to number
+ *    number_t* b   := pointer to number
+ *    int wordsize  := wordsize for output number
  *
  * returns:
- *    pointer to number_t on heap which is sum (wordsize = a&b->ws)
- *    OR NULL if error
+ *    SUCCESS on success
+ *    ERROR on failure
  *
- * caller must:
- *    call delete_number on all params and return val
- *
- * callee guarantees:
- *    paramaters are unchanged
  */
 int add(number_t *out, number_t *a, number_t *b, int wordsize);
 
@@ -194,18 +194,14 @@ int sub(number_t *out, number_t *a, number_t *b, int wordsize);
  * lshifts number by positions
  *
  * params:
- *    number_t* number := pointer to number
- *    number_t* positions := pointer to number
+ *    number_t *out       := pointer to output number
+ *    number_t* number    := pointer to number to be shifted
+ *    number_t* positions := how many positions to shift
  *
  * returns:
- *    pointer to number_t on heap
- *    OR NULL if error
+ *    SUCCESS on success
+ *    ERROR on failure
  *
- * caller must:
- *    call delete_number on all params and return val
- *
- * callee guarantees:
- *    paramaters are unchanged
  */
 int lshift(number_t *out, number_t *number, number_t *positions, int wordsize);
 
@@ -214,28 +210,41 @@ int lshift(number_t *out, number_t *number, number_t *positions, int wordsize);
  * rshifts number by positions
  *
  * params:
- *    number_t* number := pointer to number
- *    number_t* positions := pointer to number
+ *    number_t *out       := pointer to output number
+ *    number_t* number    := pointer to number to be shifted
+ *    number_t* positions := pointer to number holding shift amount
  *
  * returns:
- *    pointer to number_t on heap
- *    OR NULL if error
- *
- * caller must:
- *    call delete_number on all params and return val
- *
- * callee guarantees:
- *    paramaters are unchanged
+ *    SUCCESS on success
+ *    ERROR on failure
  */
 int rshift(number_t *out, number_t *number, number_t *positions, int wordsize);
 
 /*
+ * bitwise and two numbers together
  *
+ * params:
+ *    number_t *out   := pointer to output number
+ *    number_t* a     := pointer to first number
+ *    number_t* b     := pointer to second number
+ *
+ * returns:
+ *    SUCCESS on success
+ *    ERROR on failure
  */
 int and(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /*
+ * bitwise or two numbers together
  *
+ * params:
+ *    number_t *out   := pointer to output number
+ *    number_t* a     := pointer to first number
+ *    number_t* b     := pointer to second number
+ *
+ * returns:
+ *    SUCCESS on success
+ *    ERROR on failure
  */
 int or(number_t *out, number_t *a, number_t *b, int wordsize);
 
