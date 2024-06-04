@@ -3,6 +3,7 @@
   #include "utils.h"
   #include "parser.tab.h"
   void yyerror(number_t *number, status_t *status, u64 *arg, char* msg, ...);
+  // todo: have numbers return number struct
 %}
 
 %option nounput
