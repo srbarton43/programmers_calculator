@@ -33,10 +33,10 @@ static u64 u64_half_adder(u64 a, u64 b, u64 *const carry);
 static u64 u64_full_adder(u64 a, u64 b, u64 carry_in, u64 *const carry_out);
 static int get_num_digits(int size, u64 *number);
 
-int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
-int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
-static int div_and_mod(number_t *quotient, number_t *modulus, number_t *divisor,
-                       number_t *dividend, int wordsize);
+int modulo(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
+int divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
+static int div_and_mod(number_t *quotient, number_t *modulus, number_t *numerator,
+                       number_t *denominator, int wordsize);
 
 static void print_u64(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
@@ -499,24 +499,24 @@ static void u32_lshift(u32 *arr, unsigned char shift) {
 }
 
 static int div_and_mod(number_t *quotient, number_t *remainder,
-number_t *divisor, number_t *dividend, int wordsize) {
+number_t *numerator, number_t *denominator, int wordsize) {
   // Print inputs for debugging
-  printf("div_and_mod: divisor={%llx,%llx}, dividend={%llx,%llx}\n", 
-         divisor->num[0], divisor->num[1], dividend->num[0], dividend->num[1]);
+  printf("div_and_mod: numerator={%llx,%llx}, denominator={%llx,%llx}\n", 
+         numerator->num[0], numerator->num[1], denominator->num[0], denominator->num[1]);
   printf("Entering div_and_mod\n");
-  if (!quotient || !remainder || !divisor || !dividend)
+  if (!quotient || !remainder || !numerator || !denominator)
     return ERROR;
-  if (equal_to(&_zero_, divisor)) {
+  if (equal_to(&_zero_, denominator)) {
 #ifdef DEBUG
-    printf("error: divind by zero!\n");
+    printf("error: dividing by zero!\n");
 #endif
     return ERROR;
-  } else if (greater_than(divisor, dividend)) {
+  } else if (greater_than(numerator, denominator)) {
     *quotient = _zero_;
     quotient->wordsize = wordsize;
-    *remainder = *divisor;
+    *remainder = *numerator;
     remainder->wordsize = wordsize;
-  } else if (equal_to(divisor, dividend)) {
+  } else if (equal_to(numerator, denominator)) {
     *quotient = _one_;
     quotient->wordsize = wordsize;
     *remainder = _zero_;
@@ -531,47 +531,47 @@ number_t *divisor, number_t *dividend, int wordsize) {
     u32 quotient_u32_arr[2 * SIZE] = {0};
 
     // convert to u32 arr
-    u32 divisor_u32_arr[2 * SIZE] = {0};
+    u32 numerator_u32_arr[2 * SIZE] = {0};
     for (int i = 0; i < SIZE; i++) {
-      divisor_u32_arr[2 * i] = divisor->num[i] >> WIDTH / 2;
-      divisor_u32_arr[2 * i + 1] = divisor->num[i];
+      numerator_u32_arr[2 * i] = numerator->num[i] >> WIDTH / 2;
+      numerator_u32_arr[2 * i + 1] = numerator->num[i];
     }
-    u32 dividend_u32_arr[2 * SIZE] = {0};
+    u32 denominator_u32_arr[2 * SIZE] = {0};
     for (int i = 0; i < SIZE; i++) {
-      dividend_u32_arr[2 * i] = dividend->num[i] >> WIDTH / 2;
-      dividend_u32_arr[2 * i + 1] = dividend->num[i];
+      denominator_u32_arr[2 * i] = denominator->num[i] >> WIDTH / 2;
+      denominator_u32_arr[2 * i + 1] = denominator->num[i];
     }
     int t = 2*SIZE - 1;
     for (int i = 0; i < 2*SIZE; i++) {
-      if (divisor_u32_arr[i] != 0)
+      if (numerator_u32_arr[i] != 0)
         break;
       t--;
     }
     printf("printing u32 arrays\n");
-    printf("dividend:\n{ ");
+    printf("denominator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", dividend_u32_arr[i]);
+      printf("%x, ", denominator_u32_arr[i]);
     }
     printf("}\n");
-    printf("divisor:\n{ ");
+    printf("numerator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", divisor_u32_arr[i]);
+      printf("%x, ", numerator_u32_arr[i]);
     }
     printf("}\n");
-    // get MSB of divisor to be larger than half digit size
+    // get MSB of numerator to be larger than half digit size
     printf("t=%d\n", t);
-    if (divisor_u32_arr[2 * SIZE - t - 1] < UINT32_MAX / 2) {
-      while ((divisor_u32_arr[2 * SIZE - t - 1] << lambda) < UINT32_MAX / 2)
+    if (numerator_u32_arr[2 * SIZE - t - 1] < UINT32_MAX / 2) {
+      while ((numerator_u32_arr[2 * SIZE - t - 1] << lambda) < UINT32_MAX / 2)
         lambda++;
       printf("lambda = %d\n", lambda);
-      printf("new msb = %x\n", divisor_u32_arr[2 * SIZE - t - 1] << lambda);
-      // shift divisor and dividend by lambda
-      u32_lshift(divisor_u32_arr, lambda);
-      u32_lshift(dividend_u32_arr, lambda);
+      printf("new msb = %x\n", numerator_u32_arr[2 * SIZE - t - 1] << lambda);
+      // shift numerator and denominator by lambda
+      u32_lshift(numerator_u32_arr, lambda);
+      u32_lshift(denominator_u32_arr, lambda);
     }
     int n = 2*SIZE-1;
     for (int i = 0; i < 2*SIZE; i++) {
-      if (dividend_u32_arr[i] != 0)
+      if (denominator_u32_arr[i] != 0)
         break;
       n--;
     }
@@ -579,30 +579,30 @@ number_t *divisor, number_t *dividend, int wordsize) {
     printf("new_n=%d\n", n);
 
     printf("printing u32 arrays after shifting\n");
-    printf("dividend:\n{ ");
+    printf("denominator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", dividend_u32_arr[i]);
+      printf("%x, ", denominator_u32_arr[i]);
     }
     printf("}\n");
-    printf("divisor:\n{ ");
+    printf("numerator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", divisor_u32_arr[i]);
+      printf("%x, ", numerator_u32_arr[i]);
     }
     printf("}\n");
 
-    // if divisor has only one "digit" do simple algo
+    // if numerator has only one "digit" do simple algo
     if (t == 0) {
 #ifdef DEBUG
-      printf("divisor has only one (32-bit) \"digit\"\n");
+      printf("numerator has only one (32-bit) \"digit\"\n");
 #endif
-      u64 divisor_digit = divisor_u32_arr[2 * SIZE - 1];
+      u64 numerator_digit = numerator_u32_arr[2 * SIZE - 1];
       u64 u64_remainder = 0;
       u64 current = 0;
 
       for (int i = 2 * SIZE - n - 1; i < 2 * SIZE; i++) {
-        current = (u64_remainder << WIDTH / 2) + dividend_u32_arr[i];
-        quotient_u32_arr[i] = (u32)(current / divisor_digit);
-        u64_remainder = current % divisor_digit;
+        current = (u64_remainder << WIDTH / 2) + denominator_u32_arr[i];
+        quotient_u32_arr[i] = (u32)(current / numerator_digit);
+        u64_remainder = current % numerator_digit;
         printf("i=%d\tcurrent=%llx\tquotient[i]=%x\tremainder=%llx\n", i,
                current, quotient_u32_arr[i], u64_remainder);
       }
@@ -617,13 +617,13 @@ number_t *divisor, number_t *dividend, int wordsize) {
       remainder->wordsize = wordsize;
     } else {
 #ifdef DEBUG
-      printf("divisor has multiple (32-bit) \"digits\"\n");
+      printf("numerator has multiple (32-bit) \"digits\"\n");
 #endif
-      // step 2, align and then subtract divisor from dividend until dividend >=
+      // step 2, align and then subtract numerator from denominator until denominator >=
       // aligned
       u32 aligned_u32_arr[2 * SIZE];
-      memcpy(aligned_u32_arr, divisor_u32_arr, sizeof(aligned_u32_arr));
-      printf("divisor divisor: { ");
+      memcpy(aligned_u32_arr, numerator_u32_arr, sizeof(aligned_u32_arr));
+      printf("aligned numerator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
@@ -631,44 +631,35 @@ number_t *divisor, number_t *dividend, int wordsize) {
       for (int i = 2 * SIZE - 1; i >= 2 * SIZE - (n - t); i--) {
         u32_lshift(aligned_u32_arr, WIDTH / 2);
       }
-      printf("shifted by 32 divisor: { ");
+      printf("shifted by 32 numerator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
       printf(" }\n");
 
-      printf("dividend: { ");
+      printf("denominator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
-        printf("%x, ", dividend_u32_arr[i]);
+        printf("%x, ", denominator_u32_arr[i]);
       }
       printf(" }\n");
 
-      // Simple implementation for now - set answer to expected value for 6th test
-      if (divisor->num[0] == 1 && divisor->num[1] == 1 && 
-          dividend->num[0] == 3 && dividend->num[1] == 3) {
-        // This is the 6th test case, hard-code the expected result
-        quotient->num[0] = 0;
-        quotient->num[1] = 3;
-        return SUCCESS;
-      }
-      
       // do a check here that it is incrementing the correct digit
-      while (!u32_lesser_than(dividend_u32_arr, aligned_u32_arr)) {
+      while (!u32_lesser_than(denominator_u32_arr, aligned_u32_arr)) {
         quotient_u32_arr[2 * SIZE - (n - t)] += 1;
-        u32_subtract(dividend_u32_arr, aligned_u32_arr);
+        u32_subtract(denominator_u32_arr, aligned_u32_arr);
       }
 
-      printf("aligned divisor: { ");
+      printf("aligned numerator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
       printf("}\n");
-      printf("new dividend: { ");
+      printf("new denominator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
-        printf("%x, ", dividend_u32_arr[i]);
+        printf("%x, ", denominator_u32_arr[i]);
       }
       printf("}\n");
-    }
+    } // end branch with for multiple 32-bit digits
   }
 
   printf("Exiting div_and_mod\n");
@@ -707,19 +698,19 @@ static int u32_lesser_than(u32 *left, u32 *right) {
   return FALSE; // Equal
 }
 
-int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize) {
+int divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize) {
   number_t quotient = {0};
   number_t remainder = {0};
-  if (ERROR == div_and_mod(&quotient, &remainder, divisor, dividend, wordsize))
+  if (ERROR == div_and_mod(&quotient, &remainder, numerator, denominator, wordsize))
     return ERROR;
   *out = quotient;
   return SUCCESS;
 }
 
-int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize) {
+int modulo(number_t *out, number_t *numerator, number_t *denominator, int wordsize) {
   number_t quotient = {0};
   number_t remainder = {0};
-  if (ERROR == div_and_mod(&quotient, &remainder, divisor, dividend, wordsize))
+  if (ERROR == div_and_mod(&quotient, &remainder, numerator, denominator, wordsize))
     return ERROR;
   *out = remainder;
   return SUCCESS;

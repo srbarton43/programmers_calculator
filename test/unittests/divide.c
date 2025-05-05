@@ -8,26 +8,26 @@ int main(int argc, char *argv[]) {
   if (!fp)
     return -1;
 
-  u64 divisor_h, divisor_l, dividend_h, dividend_l, correct_h, correct_l;
+  u64 numerator_h, numerator_l, denominator_h, denominator_l, correct_h, correct_l;
   int ws;
 
   int test_no = 1;
   
   printf("Testing the Divide Operator\n");
 
-  // File format: divisor_h divisor_l dividend_h dividend_l correct_h correct_l wordsize
+  // File format: numerator_h numerator_l denominator_h denominator_l correct_h correct_l wordsize
   // Run only the 6th test case
-  while (fscanf(fp, "%llx %llx %llx %llx %llx %llx %d\n", &divisor_h,
-  &divisor_l, &dividend_h, &dividend_l, &correct_h, &correct_l,
+  while (fscanf(fp, "%llx %llx %llx %llx %llx %llx %d\n", &numerator_h,
+  &numerator_l, &denominator_h, &denominator_l, &correct_h, &correct_l,
   &ws) == 7) {
   // Run all tests now
-  printf("Test input: divisor=%llx%llx, dividend=%llx%llx, expected=%llx%llx, ws=%d\n", 
-           divisor_h, divisor_l, dividend_h, dividend_l, correct_h, correct_l, ws);
+  printf("Test input: numerator=%llx%llx, denominator=%llx%llx, expected=%llx%llx, ws=%d\n", 
+           numerator_h, numerator_l, denominator_h, denominator_l, correct_h, correct_l, ws);
     number_t out = {0};
-    number_t dividend_num = {ws, {dividend_h, dividend_l}, {0}};
-    number_t divisor_num = {ws, {divisor_h, divisor_l}, {0}};
-    // Function signature: divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize)
-    divide(&out, &divisor_num, &dividend_num, ws);
+    number_t denominator_num = {ws, {denominator_h, denominator_l}, {0}};
+    number_t numerator_num = {ws, {numerator_h, numerator_l}, {0}};
+    // Function signature: divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize)
+    divide(&out, &numerator_num, &denominator_num, ws);
     if (out.num[0] != correct_h || out.num[1] != correct_l) {
       printf("[%02d] TEST FAILED\n", test_no);
       ret++;

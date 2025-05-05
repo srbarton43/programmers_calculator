@@ -204,8 +204,8 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize);
 int sub(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /***************** DIVIDE and MOD ***********************/
-int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
-int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+int divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
+int modulo(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
 
 int multiply(number_t *out, number_t *a, number_t *b, int wordsize);
 
