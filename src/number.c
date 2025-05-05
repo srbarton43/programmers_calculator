@@ -33,10 +33,10 @@ static u64 u64_half_adder(u64 a, u64 b, u64 *const carry);
 static u64 u64_full_adder(u64 a, u64 b, u64 carry_in, u64 *const carry_out);
 static int get_num_digits(int size, u64 *number);
 
-int modulo(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
-int divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize);
-static int div_and_mod(number_t *quotient, number_t *modulus, number_t *numerator,
-                       number_t *denominator, int wordsize);
+int modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsize);
+int divide(number_t *out, number_t *denominator, number_t *numerator, int wordsize);
+static int div_and_mod(number_t *quotient, number_t *modulus, number_t *denominator,
+                       number_t *numerator, int wordsize);
 
 static void print_u64(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
@@ -479,8 +479,10 @@ int multiply(number_t *out, number_t *a, number_t *b, int wordsize) {
 }
 
 static void u32_lshift(u32 *arr, unsigned char shift) {
+#ifdef DEBUG
   printf("Entering %s\n", __FUNCTION__);
   printf("shift=%d\n", shift);
+#endif
   u32 shift_in = 0;
   u32 copy_arr[2 * SIZE];
   memcpy(copy_arr, arr, sizeof(copy_arr));
@@ -488,22 +490,28 @@ static void u32_lshift(u32 *arr, unsigned char shift) {
     arr[2*SIZE-1 - i] = 0;
   }
   for (int i = 2 * SIZE - 1; i >= (int)(shift / (WIDTH / 2)); i--) {
+#ifdef DEBUG
     printf("i=%d\tarr_idx=%d\n", i, i-shift / (WIDTH/2));
     printf("chunk=%x\tshift_in=%x\n", copy_arr[i] << shift%(WIDTH/2), shift_in );
+#endif
     arr[i - shift / (WIDTH / 2)] =
         (copy_arr[i] << shift % (WIDTH / 2)) |
         (shift_in >> ((WIDTH / 2 - shift) % (WIDTH / 2)));
     shift_in = (((1U << shift) - 1) << (WIDTH / 2 - shift)) & copy_arr[i];
   }
+#ifdef DEBUG
   printf("Exiting %s\n", __FUNCTION__);
+#endif
 }
 
 static int div_and_mod(number_t *quotient, number_t *remainder,
-number_t *numerator, number_t *denominator, int wordsize) {
+number_t *denominator, number_t *numerator, int wordsize) {
   // Print inputs for debugging
-  printf("div_and_mod: numerator={%llx,%llx}, denominator={%llx,%llx}\n", 
-         numerator->num[0], numerator->num[1], denominator->num[0], denominator->num[1]);
+#ifdef DEBUG
+  printf("div_and_mod: denominator={%llx,%llx}, numerator={%llx,%llx}\n", 
+         denominator->num[0], denominator->num[1], numerator->num[0], numerator->num[1]);
   printf("Entering div_and_mod\n");
+#endif
   if (!quotient || !remainder || !numerator || !denominator)
     return ERROR;
   if (equal_to(&_zero_, denominator)) {
@@ -511,12 +519,12 @@ number_t *numerator, number_t *denominator, int wordsize) {
     printf("error: dividing by zero!\n");
 #endif
     return ERROR;
-  } else if (greater_than(numerator, denominator)) {
+  } else if (greater_than(denominator, numerator)) {
     *quotient = _zero_;
     quotient->wordsize = wordsize;
     *remainder = *numerator;
     remainder->wordsize = wordsize;
-  } else if (equal_to(numerator, denominator)) {
+  } else if (equal_to(denominator, numerator)) {
     *quotient = _one_;
     quotient->wordsize = wordsize;
     *remainder = _zero_;
@@ -531,80 +539,88 @@ number_t *numerator, number_t *denominator, int wordsize) {
     u32 quotient_u32_arr[2 * SIZE] = {0};
 
     // convert to u32 arr
-    u32 numerator_u32_arr[2 * SIZE] = {0};
-    for (int i = 0; i < SIZE; i++) {
-      numerator_u32_arr[2 * i] = numerator->num[i] >> WIDTH / 2;
-      numerator_u32_arr[2 * i + 1] = numerator->num[i];
-    }
     u32 denominator_u32_arr[2 * SIZE] = {0};
     for (int i = 0; i < SIZE; i++) {
       denominator_u32_arr[2 * i] = denominator->num[i] >> WIDTH / 2;
       denominator_u32_arr[2 * i + 1] = denominator->num[i];
     }
+    u32 numerator_u32_arr[2 * SIZE] = {0};
+    for (int i = 0; i < SIZE; i++) {
+      numerator_u32_arr[2 * i] = numerator->num[i] >> WIDTH / 2;
+      numerator_u32_arr[2 * i + 1] = numerator->num[i];
+    }
     int t = 2*SIZE - 1;
     for (int i = 0; i < 2*SIZE; i++) {
-      if (numerator_u32_arr[i] != 0)
+      if (denominator_u32_arr[i] != 0)
         break;
       t--;
     }
+#ifdef DEBUG
     printf("printing u32 arrays\n");
-    printf("denominator:\n{ ");
-    for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", denominator_u32_arr[i]);
-    }
-    printf("}\n");
     printf("numerator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
       printf("%x, ", numerator_u32_arr[i]);
     }
     printf("}\n");
-    // get MSB of numerator to be larger than half digit size
+    printf("denominator:\n{ ");
+    for (int i = 0; i < 2 * SIZE; i++) {
+      printf("%x, ", denominator_u32_arr[i]);
+    }
+    printf("}\n");
+    // get MSB of denominator to be larger than half digit size
     printf("t=%d\n", t);
-    if (numerator_u32_arr[2 * SIZE - t - 1] < UINT32_MAX / 2) {
-      while ((numerator_u32_arr[2 * SIZE - t - 1] << lambda) < UINT32_MAX / 2)
+#endif
+    if (denominator_u32_arr[2 * SIZE - t - 1] < UINT32_MAX / 2) {
+      while ((denominator_u32_arr[2 * SIZE - t - 1] << lambda) < UINT32_MAX / 2)
         lambda++;
+#ifdef DEBUG
       printf("lambda = %d\n", lambda);
-      printf("new msb = %x\n", numerator_u32_arr[2 * SIZE - t - 1] << lambda);
-      // shift numerator and denominator by lambda
-      u32_lshift(numerator_u32_arr, lambda);
+      printf("new msb = %x\n", denominator_u32_arr[2 * SIZE - t - 1] << lambda);
+#endif
+      // shift denominator and numerator by lambda
       u32_lshift(denominator_u32_arr, lambda);
+      u32_lshift(numerator_u32_arr, lambda);
     }
     int n = 2*SIZE-1;
     for (int i = 0; i < 2*SIZE; i++) {
-      if (denominator_u32_arr[i] != 0)
+      if (numerator_u32_arr[i] != 0)
         break;
       n--;
     }
 
+#ifdef DEBUG
     printf("new_n=%d\n", n);
 
     printf("printing u32 arrays after shifting\n");
-    printf("denominator:\n{ ");
-    for (int i = 0; i < 2 * SIZE; i++) {
-      printf("%x, ", denominator_u32_arr[i]);
-    }
-    printf("}\n");
     printf("numerator:\n{ ");
     for (int i = 0; i < 2 * SIZE; i++) {
       printf("%x, ", numerator_u32_arr[i]);
     }
     printf("}\n");
+    printf("denominator:\n{ ");
+    for (int i = 0; i < 2 * SIZE; i++) {
+      printf("%x, ", denominator_u32_arr[i]);
+    }
+    printf("}\n");
+#endif
 
-    // if numerator has only one "digit" do simple algo
+    // if denominator has only one "digit" do simple algo
     if (t == 0) {
 #ifdef DEBUG
-      printf("numerator has only one (32-bit) \"digit\"\n");
+      printf("denominator has only one (32-bit) \"digit\"\n");
 #endif
-      u64 numerator_digit = numerator_u32_arr[2 * SIZE - 1];
+      u64 denominator_digit = denominator_u32_arr[2 * SIZE - 1];
       u64 u64_remainder = 0;
       u64 current = 0;
 
       for (int i = 2 * SIZE - n - 1; i < 2 * SIZE; i++) {
-        current = (u64_remainder << WIDTH / 2) + denominator_u32_arr[i];
-        quotient_u32_arr[i] = (u32)(current / numerator_digit);
-        u64_remainder = current % numerator_digit;
+        current = (u64_remainder << WIDTH / 2) + numerator_u32_arr[i];
+        quotient_u32_arr[i] = (u32)(current / denominator_digit);
+        u64_remainder = current % denominator_digit;
+#ifdef DEBUG
         printf("i=%d\tcurrent=%llx\tquotient[i]=%x\tremainder=%llx\n", i,
                current, quotient_u32_arr[i], u64_remainder);
+#endif
       }
       // put back into u64 arr
       for (int i = 0; i < SIZE; i++) {
@@ -617,52 +633,339 @@ number_t *numerator, number_t *denominator, int wordsize) {
       remainder->wordsize = wordsize;
     } else {
 #ifdef DEBUG
-      printf("numerator has multiple (32-bit) \"digits\"\n");
+      printf("denominator has multiple (32-bit) \"digits\"\n");
 #endif
-      // step 2, align and then subtract numerator from denominator until denominator >=
+      // step 2, align and then subtract denominator from numerator until numerator >=
       // aligned
       u32 aligned_u32_arr[2 * SIZE];
-      memcpy(aligned_u32_arr, numerator_u32_arr, sizeof(aligned_u32_arr));
-      printf("aligned numerator: { ");
+      memcpy(aligned_u32_arr, denominator_u32_arr, sizeof(aligned_u32_arr));
+#ifdef DEBUG
+      printf("aligned denominator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
       printf(" }\n");
+#endif
       for (int i = 2 * SIZE - 1; i >= 2 * SIZE - (n - t); i--) {
         u32_lshift(aligned_u32_arr, WIDTH / 2);
       }
-      printf("shifted by 32 numerator: { ");
+#ifdef DEBUG
+      printf("shifted by 32 denominator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
       printf(" }\n");
+#endif
 
-      printf("denominator: { ");
+#ifdef DEBUG
+      printf("numerator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
-        printf("%x, ", denominator_u32_arr[i]);
+        printf("%x, ", numerator_u32_arr[i]);
       }
       printf(" }\n");
+#endif
 
       // do a check here that it is incrementing the correct digit
-      while (!u32_lesser_than(denominator_u32_arr, aligned_u32_arr)) {
+      while (!u32_lesser_than(numerator_u32_arr, aligned_u32_arr)) {
         quotient_u32_arr[2 * SIZE - (n - t)] += 1;
-        u32_subtract(denominator_u32_arr, aligned_u32_arr);
+        u32_subtract(numerator_u32_arr, aligned_u32_arr);
       }
 
-      printf("aligned numerator: { ");
+#ifdef DEBUG
+      printf("aligned denominator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
         printf("%x, ", aligned_u32_arr[i]);
       }
       printf("}\n");
-      printf("new denominator: { ");
+      printf("new numerator: { ");
       for (int i = 0; i < 2*SIZE; i++) {
-        printf("%x, ", denominator_u32_arr[i]);
+        printf("%x, ", numerator_u32_arr[i]);
       }
       printf("}\n");
+#endif
+      
+      // step 3 of Knuth's algorithm D
+      u32 one = 1;
+      u32 x_3digit[2 * SIZE] = {0};
+      u32 y_2digit[2 * SIZE] = {0};
+      u64 q_u128 = 0;
+      u32 q_digit = 0;
+      
+#ifdef DEBUG
+      printf("Starting step 3: n=%d, t=%d\n", n, t);
+#endif
+      
+      // step 3: for i = n downto t + 1
+      for (int i = n; i >= t + 1; i--) {
+#ifdef DEBUG
+        printf("Processing digit i=%d\n", i);
+#endif
+        q_digit = 0;
+        
+        // step 3.1: estimate quotient digit
+        if (numerator_u32_arr[2 * SIZE - i - 1] == denominator_u32_arr[2 * SIZE - t - 1]) {
+          q_digit = UINT32_MAX - 1;
+#ifdef DEBUG
+          printf("Equal leading digits, q_digit set to: %u\n", q_digit);
+#endif
+        } else {
+          q_u128 = ((u64)numerator_u32_arr[2 * SIZE - i - 1] << 32) | 
+                  numerator_u32_arr[2 * SIZE - i];
+          q_digit = q_u128 / denominator_u32_arr[2 * SIZE - t - 1];
+          #ifdef DEBUG
+          printf("Estimated q_digit: %u (from %llu / %u)\n", 
+                  q_digit, q_u128, denominator_u32_arr[2 * SIZE - t - 1]);
+#endif
+        }
+        
+        // calculate 3-digit dividend portion and 2-digit divisor portion for comparison
+        memset(x_3digit, 0, sizeof(x_3digit));
+        x_3digit[2 * SIZE - 1] = numerator_u32_arr[2 * SIZE - i - 1];
+        x_3digit[2 * SIZE - 2] = numerator_u32_arr[2 * SIZE - i];
+        x_3digit[2 * SIZE - 3] = numerator_u32_arr[2 * SIZE - i + 1];
+        
+        memset(y_2digit, 0, sizeof(y_2digit));
+        y_2digit[2 * SIZE - 1] = denominator_u32_arr[2 * SIZE - t - 1];
+        y_2digit[2 * SIZE - 2] = denominator_u32_arr[2 * SIZE - t];
+        
+#ifdef DEBUG
+        printf("3-digit x: [%u, %u, %u]\n", x_3digit[2 * SIZE - 1], x_3digit[2 * SIZE - 2], x_3digit[2 * SIZE - 3]);
+        printf("2-digit y: [%u, %u]\n", y_2digit[2 * SIZE - 1], y_2digit[2 * SIZE - 2]);
+#endif
+        
+        // step 3.2: decrease q_digit until q_digit * y_2digit <= x_3digit
+        u32 product[2 * SIZE] = {0};
+        u32 q_too_large = 1;
+        int refinement_count = 0;
+        
+        while (q_too_large && q_digit > 0) {
+          // calculate q_digit * y_2digit
+          memset(product, 0, sizeof(product));
+          u64 carry = 0;
+
+          // Multiply each digit of y_2digit by q_digit, starting from lowest digit
+          for (int j = 2 * SIZE - 1; j >= 0; j--) {
+            if (j <= 2 * SIZE - 3) break; // Only multiply the 2 digits
+            
+            u64 mult = (u64)q_digit * y_2digit[j] + carry;
+            product[j] = mult & 0xFFFFFFFF;
+            carry = mult >> 32;
+            
+            // Handle carry to the next digit
+            if (j > 0 && carry > 0) {
+              product[j - 1] = carry;
+              carry = 0;
+            }
+          }
+          
+          // Compare product with x_3digit (most significant first)
+          int compare_result = 0;
+          for (int j = 0; j < 2 * SIZE; j++) {
+            if (product[j] < x_3digit[j]) {
+              compare_result = -1; // product < x_3digit
+              break;
+            } else if (product[j] > x_3digit[j]) {
+              compare_result = 1; // product > x_3digit
+              break;
+            }
+          }
+          
+          if (compare_result > 0) {
+            q_digit--;
+            refinement_count++;
+          } else {
+            q_too_large = 0;
+          }
+        }
+        
+#ifdef DEBUG
+        printf("Refined q_digit: %u (after %d refinements)\n", q_digit, refinement_count);
+#endif
+        
+        // Store quotient digit - adjust indexing here
+        int quotient_index = i - t - 1; // Compute correct index for quotient
+        quotient_u32_arr[2 * SIZE - 1 - quotient_index] = q_digit;
+#ifdef DEBUG
+        printf("Storing q_digit %u at quotient index %d\n", q_digit, 2 * SIZE - 1 - quotient_index);
+#endif
+        
+        // Calculate shifted divisor (y_shifted = divisor << ((i-t-1) * 32))
+        u32 y_shifted[2 * SIZE] = {0};
+        memcpy(y_shifted, denominator_u32_arr, sizeof(y_shifted));
+        
+        // Shift based on the position (WIDTH/2 bits per position)
+        int shift_positions = i - t - 1;
+#ifdef DEBUG
+        printf("Shifting divisor by %d positions\n", shift_positions);
+#endif
+        
+        if (shift_positions > 0) {
+          // We need to shift right since our arrays are in reverse order (MSB at [0])
+          // First, make a copy of the original array
+          u32 temp[2 * SIZE] = {0};
+          memcpy(temp, y_shifted, sizeof(temp));
+          
+          // Zero out the destination array
+          memset(y_shifted, 0, sizeof(y_shifted));
+          
+          // Copy digits with the shift applied (shift to the right)
+          for (int j = 0; j < 2 * SIZE - shift_positions; j++) {
+            y_shifted[j + shift_positions] = temp[j];
+          }
+        }
+        
+#ifdef DEBUG
+        printf("Shifted divisor: ");
+        for (int j = 0; j < 2 * SIZE; j++) {
+          printf("%x ", y_shifted[j]);
+        }
+        printf("\n");
+#endif
+        
+        // Step 3.3 and 3.4: subtract q_digit * y_shifted from dividend
+        u32 q_times_y[2 * SIZE] = {0};
+        
+        // Compute q_digit * y_shifted with proper carry handling
+        u64 carry = 0;
+        for (int j = 2 * SIZE - 1; j >= 0; j--) {
+          u64 mult = (u64)q_digit * y_shifted[j] + carry;
+          q_times_y[j] = mult & 0xFFFFFFFF;
+          carry = mult >> 32;
+        }
+        
+#ifdef DEBUG
+        printf("q_digit * y_shifted: ");
+        for (int j = 0; j < 2 * SIZE; j++) {
+          printf("%x ", q_times_y[j]);
+        }
+        printf("\n");
+        
+        printf("Current numerator: ");
+        for (int j = 0; j < 2 * SIZE; j++) {
+          printf("%x ", numerator_u32_arr[j]);
+        }
+        printf("\n");
+#endif
+        
+        // Compare numerator with q_times_y (most significant first)
+        int compare_result = 0;
+        for (int j = 0; j < 2 * SIZE; j++) {
+          if (numerator_u32_arr[j] < q_times_y[j]) {
+            compare_result = -1; // numerator < q_times_y
+            break;
+          } else if (numerator_u32_arr[j] > q_times_y[j]) {
+            compare_result = 1; // numerator > q_times_y
+            break;
+          }
+        }
+        
+        if (compare_result >= 0) {
+          // Step 3.3: dividend >= q_digit * y_shifted, just subtract
+#ifdef DEBUG
+          printf("Case 3.3: numerator >= q_times_y, subtracting\n");
+#endif
+          u32_subtract(numerator_u32_arr, q_times_y);
+        } else {
+          // Step 3.4: dividend < q_digit * y_shifted, need to add back
+#ifdef DEBUG
+          printf("Case 3.4: numerator < q_times_y, adding back\n");
+#endif
+          
+          // Create temp = q_times_y - y_shifted
+          u32 temp[2 * SIZE];
+          memcpy(temp, q_times_y, sizeof(temp));
+          u32_subtract(temp, y_shifted);  // temp = q_times_y - y_shifted
+          
+          // Numerator = numerator - temp
+          u32_subtract(numerator_u32_arr, temp);
+          
+          // Decrement quotient digit
+          quotient_u32_arr[2 * SIZE - 1 - quotient_index]--;
+#ifdef DEBUG
+          printf("Decremented quotient digit to %u\n", quotient_u32_arr[2 * SIZE - 1 - quotient_index]);
+#endif
+        }
+        
+#ifdef DEBUG
+        printf("Numerator after step: ");
+        for (int j = 0; j < 2 * SIZE; j++) {
+          printf("%x ", numerator_u32_arr[j]);
+        }
+        printf("\n\n");
+#endif
+      }
+      
+#ifdef DEBUG
+      printf("Final quotient array: ");
+      for (int j = 0; j < 2 * SIZE; j++) {
+        printf("%x ", quotient_u32_arr[j]);
+      }
+      printf("\n");
+      
+      // Rewind shifts by lambda to get actual remainder
+      printf("Rewinding lambda shifts: %d bits\n", lambda);
+#endif
+      
+      // Handle right shift for lambda bits
+      if (lambda > 0) {
+        // For our array representation, we need to right shift since MSB is at index 0
+        int full_words = lambda / 32;
+        int remaining_bits = lambda % 32;
+        
+#ifdef DEBUG
+        printf("Right shift: %d words + %d bits\n", full_words, remaining_bits);
+#endif
+        
+        if (full_words > 0) {
+          // Shift full words first
+          for (int j = 2 * SIZE - 1; j >= full_words; j--) {
+            numerator_u32_arr[j] = numerator_u32_arr[j - full_words];
+          }
+          // Zero out the words that were shifted out
+          for (int j = 0; j < full_words; j++) {
+            numerator_u32_arr[j] = 0;
+          }
+        }
+        
+        // Then do bit-by-bit shifting for remaining bits
+        if (remaining_bits > 0) {
+          for (int i = 0; i < remaining_bits; i++) {
+            u32 carry = 0;
+            // Process from least significant digit to most significant
+            for (int j = 2 * SIZE - 1; j >= 0; j--) {
+              u32 next_carry = (numerator_u32_arr[j] & 1) << 31;
+              numerator_u32_arr[j] = (numerator_u32_arr[j] >> 1) | carry;
+              carry = next_carry;
+            }
+          }
+        }
+        
+#ifdef DEBUG
+        printf("Remainder after shift: ");
+        for (int j = 0; j < 2 * SIZE; j++) {
+          printf("%x ", numerator_u32_arr[j]);
+        }
+        printf("\n");
+#endif
+      }
+      
+      // Convert the quotient and remainder back to u64 format
+#ifdef DEBUG
+      printf("Converting u32 arrays back to u64\n");
+#endif
+      for (int i = 0; i < SIZE; i++) {
+        quotient->num[i] = ((u64)quotient_u32_arr[2 * i] << 32) | quotient_u32_arr[2 * i + 1];
+        remainder->num[i] = ((u64)numerator_u32_arr[2 * i] << 32) | numerator_u32_arr[2 * i + 1];
+#ifdef DEBUG
+        printf("quotient[%d] = %llx, remainder[%d] = %llx\n", i, quotient->num[i], i, remainder->num[i]);
+#endif
+      }
     } // end branch with for multiple 32-bit digits
   }
 
+#ifdef DEBUG
   printf("Exiting div_and_mod\n");
+#endif
   return SUCCESS;
 }
 
@@ -698,19 +1001,19 @@ static int u32_lesser_than(u32 *left, u32 *right) {
   return FALSE; // Equal
 }
 
-int divide(number_t *out, number_t *numerator, number_t *denominator, int wordsize) {
+int divide(number_t *out, number_t *denominator, number_t *numerator, int wordsize) {
   number_t quotient = {0};
   number_t remainder = {0};
-  if (ERROR == div_and_mod(&quotient, &remainder, numerator, denominator, wordsize))
+  if (ERROR == div_and_mod(&quotient, &remainder, denominator, numerator, wordsize))
     return ERROR;
   *out = quotient;
   return SUCCESS;
 }
 
-int modulo(number_t *out, number_t *numerator, number_t *denominator, int wordsize) {
+int modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsize) {
   number_t quotient = {0};
   number_t remainder = {0};
-  if (ERROR == div_and_mod(&quotient, &remainder, numerator, denominator, wordsize))
+  if (ERROR == div_and_mod(&quotient, &remainder, denominator, numerator, wordsize))
     return ERROR;
   *out = remainder;
   return SUCCESS;
