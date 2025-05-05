@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   
   printf("Testing the Divide Operator\n");
 
-  // File format: numerator_h numerator_l denominator_h denominator_l correct_h correct_l wordsize
+  // File format: denominator_h denominator_l numerator_h numerator_l correct_h correct_l wordsize
   while (fscanf(fp, "%llx %llx %llx %llx %llx %llx %d\n", &denominator_h,
   &denominator_l, &numerator_h, &numerator_l, &correct_h, &correct_l,
   &ws) == 7) {
