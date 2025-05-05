@@ -75,7 +75,7 @@ statement: QUIT EOL
             }
          | W_SIZE number EOL
             {
-              *arg = (u64) $2.num;
+              *arg = (u64) $2.num[SIZE-1];
               status->POISON = 0;
               status->WSIZE_CHG = 1;
               YYACCEPT;
