@@ -16,7 +16,15 @@ typedef uint8_t u8;
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
 
-typedef struct number number_t;   // opaque to users of this module
+// Complete definition lives in number.c
+typedef struct number {
+  int wordsize;          // wordsize for the bitstring
+  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
+  struct {
+    unsigned int UNSIGNED_OVERFLOW : 1;
+    unsigned int SIGNED_OVERFLOW : 1;
+  } metadata; // stores number metadata about overflow, etc
+} number_t;
 
 /************** FUNCTIONS *******************/
 
@@ -98,6 +106,10 @@ int copy_number(number_t *new, number_t *old, int wordsize);
  * Frees special numbers
  */
 void free_numbers(void);
+
+// Global constants
+extern number_t _zero_;
+extern number_t _one_;
 
 /**********     number_getSdec       *******/
 /*
@@ -192,10 +204,10 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize);
 int sub(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /***************** DIVIDE and MOD ***********************/
-//int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
-//int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
-//
-//int multiply(number_t *out, number_t *a, number_t *b, int wordsize);
+int divide(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+int modulo(number_t *out, number_t *divisor, number_t *dividend, int wordsize);
+
+int multiply(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /************** LSHIFT ***********************/
 /*

@@ -10,7 +10,7 @@
   int yylex_destroy(void);
   void yyerror(number_t* number, status_t *status, u64 *arg, const char *msg, ...);
 
-  static const number_t _empty_num_ = {0};
+  // Use _zero_ constant instead of creating our own
 %}
 
 %code requires { 
@@ -111,7 +111,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               add(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -126,7 +126,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               sub(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$3, &$1, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -143,7 +143,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               rshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -158,7 +158,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               lshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               //printf("result: \n"); number_print(num);
               //char* key = nums_add_number(prog_data, num);
@@ -176,7 +176,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               and(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -193,7 +193,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               or(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -210,7 +210,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               twos_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -227,7 +227,7 @@ expression: number
                 prog_data->nbuf_ptr--;
                 status->NUM_BUF_OF = 1;
               }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
               ones_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
               $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
             }
@@ -248,7 +248,7 @@ number: DEC
             prog_data->nbuf_ptr--;
             status->NUM_BUF_OF = 1;
           }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], DECIMAL, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
@@ -267,7 +267,7 @@ number: DEC
             prog_data->nbuf_ptr--;
             status->NUM_BUF_OF = 1;
           }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], HEXADECIMAL, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
@@ -286,7 +286,7 @@ number: DEC
             prog_data->nbuf_ptr--;
             status->NUM_BUF_OF = 1;
           }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _empty_num_;
+          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
           int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], BINARY, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass

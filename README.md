@@ -56,6 +56,7 @@ Note that while two numbers can have the same value, if they have _different_ wo
 
 - [ ] add integration tests
 - [ ] detect 64-bit number overflows
+- [ ] control-c should clear the line buffer
 - [x] better error messages (especially regarding overflows and OOB)
 - [x] history + use of arrow keys to navigate
 - [ ] rotate operations

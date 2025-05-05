@@ -23,3 +23,7 @@ ws          { return(W_SIZE); }
 [a-z]       { yylval.c_value = yytext[0]; return VAR; }
 .           { yyerror(NULL, NULL, NULL, "unexpected character: %c", yytext[0]); yylval.c_value = yytext[0]; return (int)yytext[0]; }
 %%
+
+int yywrap(void) {
+    return 1;
+}

@@ -62,3 +62,8 @@ test_rshift = executable( 'test_rshift', 'rshift.c',
   include_directories : inc,
   link_with : unittest_lib)
 test('test_rshift', test_rshift, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'rshift.txt' )
+
+test_division = executable( 'test_div', 'divide.c',
+  include_directories : inc,
+  link_with : unittest_lib)
+test('test_div', test_division, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'divide.txt', timeout : 5 )

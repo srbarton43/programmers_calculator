@@ -2,17 +2,7 @@
 #define _UNITTEST_UTILS_H
 #include "number.h"
 
-// bitfield for number metadata
-struct md_bf {
-  unsigned int UNSIGNED_OVERFLOW : 1;
-  unsigned int SIGNED_OVERFLOW : 1;
-};
-
-typedef struct number {
-  int wordsize;          // wordsize for the bitstring
-  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
-  struct md_bf metadata; // stores number metadata about overflow, etc
-} number_t;
+// Use the number_t definition from number.h
 
 // return max(a,b)
 int max(int a, int b);

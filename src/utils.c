@@ -22,7 +22,7 @@ EditLine *el;
 #endif
 
 program_data_t *prog_data;
-static const number_t _emptynumber_ = {0};
+// Use _zero_ from number.c instead
 static const status_t _emptystatus_ = {0};
 void yylex_destroy(void);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
@@ -49,7 +49,7 @@ int el_mainloop() {
   const char *line;
   int keepreading = 1;
   HistEvent ev;
-  number_t number = _emptynumber_;
+  number_t number = _zero_;
   status_t status = _emptystatus_;
   u64 arg = 0;
   YY_BUFFER_STATE buffer;
@@ -133,7 +133,7 @@ int el_mainloop() {
       break;
     }
     status = _emptystatus_;
-    number = _emptynumber_;
+    number = _zero_;
     prog_data->nbuf_ptr = 0;
   }
   history_end(myhistory);
