@@ -53,6 +53,8 @@ static number_t construct_number(int wordsize,
 static void u32_lshift(u32 *arr, unsigned char shift);
 static int u32_lesser_than(u32 *left, u32 *right);
 static void u32_subtract(u32 *left, u32 *right);
+static void print_decimal(number_t *number, int is_signed);
+
 
 // TODO: cannot get max hex bcd representation
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
@@ -235,7 +237,7 @@ void number_print(number_t *number) {
   print_signed_decimal(number);
   printf("\n");
   printf("Unsigned Integer Value: ");
-  print_decimal(number);
+  print_unsigned_decimal(number);
   printf("\n");
   // int64_t sdec = 0;
   // number_getSdec(&sdec, number);
@@ -1172,6 +1174,10 @@ static int get_max_number(number_t *out, int wordsize) {
   return SUCCESS;
 }
 
+void print_unsigned_decimal(number_t *number) {
+  print_decimal(number, 0);
+}
+  
 void print_signed_decimal(number_t *number) {
   int ws = number->wordsize;
   if ((1ULL << (ws - 1) % WIDTH & number->num[SIZE - ws / WIDTH - 1]) > 0) {
@@ -1187,20 +1193,28 @@ void print_signed_decimal(number_t *number) {
     number_t sum = ZERO(ws);
     sub(&sum, &neg_comp, &pos_comp, ws);
     printf("-");
-    print_decimal(&sum);
+    print_signed_decimal(&sum);
   } else {
     // positive number
-    print_decimal(number);
+    print_unsigned_decimal(number);
   }
 }
 
-void print_decimal(number_t *number) {
-  if (greater_than(number, &MAX_DECIMAL)) {
+static void print_decimal(number_t *number, int is_signed) {
+  
+  // Create a mask for the number's wordsize and apply it
+  number_t mask = ZERO(number->wordsize);
+  get_max_number(&mask, number->wordsize);
+  number_t masked_number = ZERO(number->wordsize);
+  and(&masked_number, number, &mask, number->wordsize);
+
+  if (is_signed && greater_than(number, &MAX_DECIMAL)) {
     printf("Too large.");
     return;
   }
   number_t scratch = ZERO(SIZE * WIDTH);
-  number_t cloned = *number;
+  number_t cloned = masked_number;
+  
   if (0 == compare(&cloned, &_zero_)) {
     printf("0");
     fflush(stdout);

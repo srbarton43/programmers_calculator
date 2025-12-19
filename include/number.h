@@ -77,9 +77,9 @@ void number_print(number_t *number);
  */
 void delete_number(number_t *number);
 
-void print_decimal(number_t *number);
-
 void print_signed_decimal(number_t *number);
+
+void print_unsigned_decimal(number_t *number);
 
 /*
  * copies number param
