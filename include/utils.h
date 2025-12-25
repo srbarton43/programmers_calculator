@@ -37,6 +37,8 @@ int el_mainloop(void);
 
 int rl_mainloop(void);
 
+int evaluate_expr(const char *expr);
+
 // PROGRAM DATA FUNCTIONS
 // initializes program data values
 program_data_t *init_program_data(void);

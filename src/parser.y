@@ -58,6 +58,14 @@ line: EOL
         *output = $1;
         YYACCEPT;
       }
+    | expression 
+      {
+#ifdef DEBUG
+        printf("evaluate expr\n");
+#endif
+        *output = $1;
+        YYACCEPT;
+      }
     | error EOL {
         YYABORT;
       }
