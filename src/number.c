@@ -1180,11 +1180,23 @@ void print_unsigned_decimal(number_t *number) {
   
 void print_signed_decimal(number_t *number) {
   int ws = number->wordsize;
-  if ((1ULL << (ws - 1) % WIDTH & number->num[SIZE - ws / WIDTH - 1]) > 0) {
+  // Create a mask for the number's wordsize and apply it
+  number_t mask = ZERO(ws);
+  get_max_number(&mask, ws);
+  number_t masked_number = ZERO(ws);
+  and(&masked_number, number, &mask, ws);
+  
+  if (ws == 1) {
+    printf("-");
+    if (compare(number, &_zero_))
+      printf("0");
+    else
+      printf("1");
+  } else if ((1ULL << (ws - 1) % WIDTH & masked_number.num[SIZE - ws / WIDTH - 1]) > 0) {
     // negative number
     number_t pos_comp = ZERO(ws);
     pos_comp.num[SIZE - ws / WIDTH - 1] |= (1ULL << (ws - 1) % WIDTH);
-    number_t neg_comp = *number;
+    number_t neg_comp = masked_number;
     number_t mask;
     number_t shift = {8, {0, ws - 1}, {0}};
     lshift(&mask, &_one_, &shift, ws);
@@ -1214,6 +1226,11 @@ static void print_decimal(number_t *number, int is_signed) {
   }
   number_t scratch = ZERO(SIZE * WIDTH);
   number_t cloned = masked_number;
+
+  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u } }\n", cloned.wordsize,
+         cloned.num[0], cloned.num[1], cloned.metadata.SIGNED_OVERFLOW,
+         cloned.metadata.UNSIGNED_OVERFLOW);
+  fflush(stdout);
   
   if (0 == compare(&cloned, &_zero_)) {
     printf("0");
