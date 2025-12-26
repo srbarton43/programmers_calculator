@@ -58,7 +58,7 @@ line: EOL
         *output = $1;
         YYACCEPT;
       }
-    | expression 
+    | expression YYEOF
       {
 #ifdef DEBUG
         printf("evaluate expr\n");

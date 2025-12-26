@@ -49,28 +49,6 @@ int evaluate_expr(const char *expr) {
   ret = yyparse(&number, &status, &arg);
   if (ret != 0) {
     printf("syntax error\n");
-  } else if (status.EMPTY) {
-    // pass
-  } else if (status.QUIT_SIG) {
-  } else if (status.POISON) {
-    printf("Error...\n");
-  } else if (status.NUM_BUF_OF) {
-    printf("Error: More numbers than the program can handle\n");
-  } else if (status.WSIZE_PR) {
-    printf("The current wordsize is %d\n", prog_data->wordsize);
-  } else if (status.WSIZE_CHG) {
-    int new_wsize = arg;
-    if (new_wsize < 4 || new_wsize > 64) {
-      printf("unsupported wordsize: %d\n", new_wsize);
-    } else {
-      printf("changed wordsize to %d\n", new_wsize);
-      prog_data->wordsize = new_wsize;
-    }
-  } else if (status.VAR_ASSN) {
-    // var assignment
-    vars_set_num(prog_data, (char)arg, &number);
-    printf("%c\n  = \n", (char)arg);
-    number_print(&number);
   } else {
     if (number.metadata.UNSIGNED_OVERFLOW)
       printf("Error: There was a unsigned overflow...the resulting number "
