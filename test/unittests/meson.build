@@ -72,3 +72,8 @@ test_mod = executable( 'test_mod', 'modulo.c',
   include_directories : inc,
   link_with : unittest_lib)
 test('test_mod', test_mod, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'modulo.txt', timeout : 5 )
+
+test_mult = executable( 'test_mult', 'multiply.c',
+  include_directories : inc,
+  link_with : unittest_lib)
+test('test_mult', test_mult, args : meson.global_build_root() / 'test' / 'unittests' / 'inputs' / 'multiply.txt', timeout : 5 )
