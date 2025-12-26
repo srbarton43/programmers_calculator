@@ -1191,10 +1191,10 @@ void print_signed_decimal(number_t *number) {
       printf("0");
     else
       printf("1");
-  } else if ((1ULL << (ws - 1) % WIDTH & masked_number.num[SIZE - ws / WIDTH - 1]) > 0) {
+  } else if (((1ULL << (ws - 1) % WIDTH) & masked_number.num[SIZE - ws / (WIDTH+1) - 1]) > 0) {
     // negative number
     number_t pos_comp = ZERO(ws);
-    pos_comp.num[SIZE - ws / WIDTH - 1] |= (1ULL << (ws - 1) % WIDTH);
+    pos_comp.num[SIZE - ws / (WIDTH+1) - 1] |= (1ULL << (ws - 1) % WIDTH);
     number_t neg_comp = masked_number;
     number_t mask;
     number_t shift = {8, {0, ws - 1}, {0}};
