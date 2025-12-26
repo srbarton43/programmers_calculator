@@ -7,24 +7,24 @@
 #define SUCCESS 0
 #define ERROR (-1)
 
+// size for num rep. arr.
+#define SIZE 2
+
 typedef uint64_t u64;
 typedef uint8_t u8;
 
 typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
-struct md_bf {
-  unsigned int UNSIGNED_OVERFLOW  : 1;
-  unsigned int SIGNED_OVERFLOW    : 1;
-};
 
+// Complete definition lives in number.c
 typedef struct number {
-  int wordsize;           // wordsize for the bitstring
-  u64 num;                // stores bitstring (only conisider [wordsize] LSB's
-  struct md_bf metadata;  // stores number metadata about overflow, etc
+  int wordsize;          // wordsize for the bitstring
+  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
+  struct {
+    unsigned int UNSIGNED_OVERFLOW : 1;
+    unsigned int SIGNED_OVERFLOW : 1;
+  } metadata; // stores number metadata about overflow, etc
 } number_t;
-
-extern number_t _zero_;
-extern number_t _one_;
 
 /************** FUNCTIONS *******************/
 
@@ -75,6 +75,10 @@ void number_print(number_t *number);
  */
 void delete_number(number_t *number);
 
+void print_signed_decimal(number_t *number);
+
+void print_unsigned_decimal(number_t *number);
+
 /*
  * copies number param
  *
@@ -95,13 +99,15 @@ void delete_number(number_t *number);
  */
 int copy_number(number_t *new, number_t *old, int wordsize);
 
-int numbers_are_equal(number_t *a, number_t *b);
-
 /**********     FREE_NUMBERS     ********/
 /*
  * Frees special numbers
  */
 void free_numbers(void);
+
+// Global constants
+extern number_t _zero_;
+extern number_t _one_;
 
 /**********     number_getSdec       *******/
 /*
@@ -166,6 +172,14 @@ int ones_comp(number_t *out, number_t *num, int wordsize);
  */
 int twos_comp(number_t *out, number_t *num, int wordsize);
 
+// returns 1 if a > b
+// zero otherwise
+int greater_than(const number_t *a, const number_t *b);
+
+int lesser_than(const number_t *a, const number_t *b);
+
+int equal_to(const number_t *a, const number_t *b);
+
 /************** ADD ***********************/
 /*
  * adds two numbers together
@@ -188,6 +202,12 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize);
  * subtract a from b
  */
 int sub(number_t *out, number_t *a, number_t *b, int wordsize);
+
+/***************** DIVIDE and MOD ***********************/
+int divide(number_t *out, number_t *denominator, number_t *numerator, int wordsize);
+int modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsize);
+
+int multiply(number_t *out, number_t *a, number_t *b, int wordsize);
 
 /************** LSHIFT ***********************/
 /*

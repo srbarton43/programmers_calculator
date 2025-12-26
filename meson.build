@@ -8,6 +8,8 @@ cc = meson.get_compiler('c')
 use_libedit = cc.has_link_argument('-ledit')
 use_readline = cc.has_link_argument('-lreadline')
 
+dep = cc.find_library('readline', required : true)
+
 if use_libedit
   add_project_arguments('-DLIBEDIT', language : 'c')
   add_project_link_arguments('-ledit', language : 'c')
@@ -18,7 +20,7 @@ else
   add_project_arguments('-DNOHISTORY', language : 'c')
 endif
 
-add_project_link_arguments('-ll', language : 'c')
+#add_project_link_arguments('-ll', language : 'c')
 inc = include_directories('include')
 
 subdir('include')
@@ -27,5 +29,6 @@ subdir('test')
 
 executable( 'pc', src_files,
             include_directories : inc,
+            dependencies : [ dep ],
             #c_args : '-DDEBUG',
             )
