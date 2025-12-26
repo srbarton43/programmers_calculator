@@ -13,19 +13,19 @@ int main(int argc, char *argv[]) {
 
   int test_no = 1;
   
-  printf("Testing the Divide Operator\n");
+  printf("Testing the Modulo Operator\n");
 
   // File format: denominator_h denominator_l numerator_h numerator_l correct_h correct_l wordsize
   while (fscanf(fp, "%llx %llx %llx %llx %llx %llx %d\n", &denominator_h,
   &denominator_l, &numerator_h, &numerator_l, &correct_h, &correct_l,
   &ws) == 7) {
-  printf("Test input: denominator=%llx%llx, numerator=%llx%llx, expected=%llx%llx, ws=%d\n", 
-           denominator_h, denominator_l, numerator_h, numerator_l, correct_h, correct_l, ws);
+  printf("Test input: numerator=%llx%llx, denominator=%llx%llx, expected=%llx%llx, ws=%d\n", 
+           numerator_h, numerator_l, denominator_h, denominator_l, correct_h, correct_l, ws);
     number_t out = {0};
     number_t denominator_num = {ws, {denominator_h, denominator_l}, {0}};
     number_t numerator_num = {ws, {numerator_h, numerator_l}, {0}};
-    // Function signature: divide(number_t *out, number_t *denominator, number_t *numerator, int wordsize)
-    divide(&out, &denominator_num, &numerator_num, ws);
+    // Function signature: modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsize)
+    modulo(&out, &denominator_num, &numerator_num, ws);
     if (out.num[0] != correct_h || out.num[1] != correct_l) {
       printf("[%02d] TEST FAILED\n", test_no);
       ret++;
