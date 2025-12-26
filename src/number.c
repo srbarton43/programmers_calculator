@@ -1187,7 +1187,6 @@ void print_signed_decimal(number_t *number) {
   and(&masked_number, number, &mask, ws);
   
   if (ws == 1) {
-    printf("-");
     if (compare(number, &_zero_))
       printf("0");
     else
@@ -1205,7 +1204,7 @@ void print_signed_decimal(number_t *number) {
     number_t sum = ZERO(ws);
     sub(&sum, &neg_comp, &pos_comp, ws);
     printf("-");
-    print_signed_decimal(&sum);
+    print_unsigned_decimal(&sum);
   } else {
     // positive number
     print_unsigned_decimal(number);
@@ -1227,11 +1226,6 @@ static void print_decimal(number_t *number, int is_signed) {
   number_t scratch = ZERO(SIZE * WIDTH);
   number_t cloned = masked_number;
 
-  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u } }\n", cloned.wordsize,
-         cloned.num[0], cloned.num[1], cloned.metadata.SIGNED_OVERFLOW,
-         cloned.metadata.UNSIGNED_OVERFLOW);
-  fflush(stdout);
-  
   if (0 == compare(&cloned, &_zero_)) {
     printf("0");
     fflush(stdout);
