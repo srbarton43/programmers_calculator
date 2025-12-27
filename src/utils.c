@@ -131,7 +131,7 @@ int el_mainloop() {
         printf("The current wordsize is %d\n", prog_data->wordsize);
       } else if (status.WSIZE_CHG) {
         int new_wsize = arg;
-        if (new_wsize < 4 || new_wsize > 64) {
+        if (new_wsize < 4 || new_wsize > 128) {
           printf("unsupported wordsize: %d\n", new_wsize);
         } else {
           printf("changed wordsize to %d\n", new_wsize);

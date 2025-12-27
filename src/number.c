@@ -24,12 +24,12 @@ typedef uint32_t u32;
 // Export these constants for use in other files
 number_t _zero_ = {1, {0}, {0, 0}};
 number_t _one_ = {2, {0, 1}, {0, 0}};
+
 static const number_t MAX_DECIMAL = {
     128, {0x4ee2d6d415b, 0x85acef80ffffffff}, {0, 0}};
 
 static int u64_multiply(u64 *const high_dig, u64 *const low_dig, u64 a, u64 b);
 static u64 u64_half_adder(u64 a, u64 b, u64 *const carry);
-static u64 u64_full_adder(u64 a, u64 b, u64 carry_in, u64 *const carry_out);
 static int get_num_digits(int size, u64 *number);
 
 int modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsize);
@@ -39,24 +39,21 @@ static int div_and_mod(number_t *quotient, number_t *modulus, number_t *denomina
 
 static void print_u64(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
-static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out);
-static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out);
-static int decstring_to_u64(const char *decstring, int wordsize, u64 *out);
+static int bitstring_to_number(const char *bitstring, int wordsize, number_t *out);
+static int hexstring_to_number(const char *hexstring, int wordsize, number_t *out);
+static int decstring_to_number(const char *decstring, int wordsize, number_t *out);
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
 static int compare(const number_t *a, const number_t *b);
 static u64 get_max_unsigned(int wordsize);
 static int get_max_number(number_t *out, int wordsize);
 static int zero_number(number_t *out);
-static number_t construct_number(int wordsize,
-                                 u64 *arr);  // where arr is terminated by elem=0
 static void u32_lshift(u32 *arr, unsigned char shift);
 static int u32_lesser_than(u32 *left, u32 *right);
 static void u32_subtract(u32 *left, u32 *right);
 static void print_decimal(number_t *number, int is_signed);
 
 
-// TODO: cannot get max hex bcd representation
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   if (number == NULL) {
     perror("null number string");
@@ -78,28 +75,19 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
     // check return codes here
     switch (type) {
       case BINARY: {
-        // todo: support arbitrary length
-        if (ERROR == bitstring_to_u64(number, wordsize, new_num->num))
+        if (ERROR == bitstring_to_number(number, wordsize, new_num))
           new_num->metadata.UNSIGNED_OVERFLOW = 1;
         break;
       }
       case DECIMAL: {
         // TODO
-        printf("Unsupported currently.\n");
-        u64 raw_decimal[SIZE] = {0};
-        if (ERROR == decstring_to_u64(number, wordsize, raw_decimal))
+        if (ERROR == decstring_to_number(number, wordsize, new_num))
           new_num->metadata.UNSIGNED_OVERFLOW = 1;
-        // if ((wordsize == 64 && raw_decimal > UINT64_MAX) ||
-        //     (wordsize < 64 && raw_decimal > (1ULL << wordsize) - 1ULL))
-        //   new_num->metadata.UNSIGNED_OVERFLOW = 1;
-        // else if (raw_decimal & 1ULL << (wordsize - 1))
-        //   new_num->metadata.SIGNED_OVERFLOW = 1;
-        memcpy(new_num->num, raw_decimal, SIZE_BYTES);
-        // new_num->num = raw_decimal & MASK;
         break;
       }
       case HEXADECIMAL: {
-        if (ERROR == hexstring_to_u64(number, wordsize, new_num->num))
+        printf("not supported for >64bit\n");
+        if (ERROR == hexstring_to_number(number, wordsize, new_num))
           new_num->metadata.UNSIGNED_OVERFLOW = 1;
         break;
       }
@@ -112,76 +100,66 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   return ret;
 }
 
-static int bitstring_to_u64(const char *bitstring, int wordsize, u64 *out) {
-  u64 num[SIZE] = {0};
-  int slen = strlen(bitstring);
-
-  int i;
-  for (i = 1; i <= wordsize; i++) {
-    if (i <= slen) {
-      num[SIZE - (i - 1) / WIDTH - 1] |= (u64)(bitstring[slen - i] - '0')
+static int bitstring_to_number(const char *bitstring, int wordsize, number_t *out) {
+  uint16_t n_bits = strlen(bitstring);
+  if (n_bits > wordsize) {
+    return ERROR;
+  }
+  for (int i = 1; i <= wordsize; i++) {
+    if (i <= n_bits) {
+      out->num[SIZE - (i - 1) / WIDTH - 1] |= (u64)(bitstring[n_bits - i] - '0')
                                          << (i - 1) % WIDTH;
     }
   }
-  if (i <= slen) {
-#ifdef DEBUG
-    printf("binary bigger than wordsize\n");
-#endif
-    return ERROR;
-  }
-  memcpy(out, num, SIZE_BYTES);
   return SUCCESS;
 }
 
-static int decstring_to_u64(const char *decstring, int wordsize, u64 *out) {
-  u64 sum = 0, new = 0;
-  u8 c_out;
-  char c;
-  int slen = strlen(decstring);
-  u64 factor = 1ULL;
-  u64 addend = 0;
-  for (int i = slen - 1; i >= 0; i--) {
-    c = decstring[i];
-    sum += factor * (c - '0');
-    if (sum > get_max_unsigned(wordsize)) {
-#ifdef DEBUG
-      printf("Decimal bigger than wordsize\n");
-#endif
-      return ERROR;
-    }
-    factor *= 10;
-    sum = new;
+static int decstring_to_number(const char *decstring, int wordsize, number_t *out) {
+  // TODO: ignore leading zeroes?
+  uint16_t n_dig = strlen(decstring);
+  number_t ten = { 128, {0, 0xa}, {0, 0}};
+  int ret = 0;
+
+  // construct array of digits
+  unsigned short *dig_arr = malloc(strlen(decstring));
+  for (int i = 0; i < n_dig; i++) {
+    const char ch = decstring[i];
+    dig_arr[i] = ch - '0';
   }
-  out[SIZE - 1] = sum;
-  return SUCCESS;
+
+  number_t scratch = {0};
+  for (int i = 0; i < n_dig; i++) {
+    ret |= multiply(&scratch, &ten, out, wordsize);
+    number_t digit_num = {128, {0, dig_arr[i] }, {0, 0}};
+    ret |= add(out, &scratch, &digit_num, wordsize);
+  }
+  
+  free(dig_arr);
+  return ret;
 }
 
-static int hexstring_to_u64(const char *hexstring, int wordsize, u64 *out) {
-  u64 num[SIZE] = {0};
-  int i = 0;
-  int slen = strlen(hexstring);
-  u64 nibble = 0;
-  int max_hex_digits = (wordsize + 3) / 4;  // ceiling division of wordsize by 4
-
-  // Check if the hex string represents a value that's too large for the wordsize
-  if (slen > max_hex_digits) {
-#ifdef DEBUG
-    printf("Hex bigger than wordsize\n");
-#endif
+static int hexstring_to_number(const char *hexstring, int wordsize, number_t *out) {
+  uint16_t h_len = strlen(hexstring);
+  
+  // check for too long hexstring
+  if ( h_len > (wordsize + 3) / 4 ) {
+    return ERROR;
+  }
+  u64 msn_bit = 64 - __builtin_clzll(get_nibble_val(hexstring[0]));
+  if (msn_bit + (h_len - 1) * 4 > wordsize) {
     return ERROR;
   }
 
-  for (i = 1; i <= slen && i <= max_hex_digits; i++) {
-    nibble = get_nibble_val(hexstring[slen - i]);
-    num[SIZE - ((i - 1) * 4) / WIDTH - 1] |=
+  for (int i = 1; i <= h_len; i++) {
+    u64 nibble = get_nibble_val(hexstring[h_len - i]);
+    out->num[SIZE - ((i - 1) * 4) / WIDTH - 1] |=
         nibble << (u64)((4ULL * ((u64)i - 1ULL)) % WIDTH);
     printf("%d\n", i);
   }
-
-  memcpy(out, num, SIZE_BYTES);
+  
   return SUCCESS;
 }
-
+  
 static u64 get_nibble_val(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
@@ -304,12 +282,13 @@ int ones_comp(number_t *out, number_t *num, int wordsize) {
 int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
-  if (num->num[SIZE - (wordsize - 1) / WIDTH - 1] !=
-      (1ULL << (wordsize - 1)) % WIDTH)
-    bubble_up_overflows(out, num, NULL);
+  bubble_up_overflows(out, num, NULL);
   out->wordsize = wordsize;
-  number_t ones;
+  number_t ones = {0};
   ones_comp(&ones, num, wordsize);
+  number_t mask = {0};
+  get_max_number(&mask, wordsize);
+  and(&ones, &ones, &mask, wordsize);
   add(out, &ones, &_one_, wordsize);
   return SUCCESS;
 }
@@ -335,8 +314,15 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
              (1ULL << (wordsize - 1) % WIDTH);
   u64 oMSB = out->num[SIZE - (wordsize - 1) / WIDTH - 1] &
              (1ULL << (wordsize - 1) % WIDTH);
+  
   if ((oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB))
     out->metadata.SIGNED_OVERFLOW = 1;
+  
+  number_t max_unsigned = {0};
+  get_max_number(&max_unsigned, wordsize);
+  if (greater_than(out, &max_unsigned))
+    out->metadata.UNSIGNED_OVERFLOW = 1;
+
   return SUCCESS;
 }
 
@@ -1194,19 +1180,11 @@ void print_signed_decimal(number_t *number) {
     else
       printf("1");
   } else if (((1ULL << (ws - 1) % WIDTH) & masked_number.num[SIZE - ws / (WIDTH+1) - 1]) > 0) {
-    // negative number
-    number_t pos_comp = ZERO(ws);
-    pos_comp.num[SIZE - ws / (WIDTH+1) - 1] |= (1ULL << (ws - 1) % WIDTH);
-    number_t neg_comp = masked_number;
-    number_t mask;
-    number_t shift = {8, {0, ws - 1}, {0}};
-    lshift(&mask, &_one_, &shift, ws);
-    sub(&mask, &_one_, &mask, ws);
-    and(&neg_comp, number, &mask, ws);
-    number_t sum = ZERO(ws);
-    sub(&sum, &neg_comp, &pos_comp, ws);
+    // // negative number
+    number_t complement = ZERO(ws);
+    twos_comp(&complement, &masked_number, ws);
     printf("-");
-    print_unsigned_decimal(&sum);
+    print_unsigned_decimal(&complement);
   } else {
     // positive number
     print_unsigned_decimal(number);
@@ -1221,8 +1199,8 @@ static void print_decimal(number_t *number, int is_signed) {
   number_t masked_number = ZERO(number->wordsize);
   and(&masked_number, number, &mask, number->wordsize);
 
-  if (is_signed && greater_than(number, &MAX_DECIMAL)) {
-    printf("Too large.");
+  if (greater_than(number, &MAX_DECIMAL)) {
+    printf("Too large to represent.");
     return;
   }
   number_t scratch = ZERO(SIZE * WIDTH);
@@ -1410,29 +1388,6 @@ int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
     printf("Test Failed!\n");
   return ret;
 }
-
-// int test_copy_number(char *num, int iws, int ows, char *expected, char *msg)
-// {
-//   printf("_____ COPY num (%d-bit -> %d-bit) _____\n", iws, ows);
-//   if (msg != NULL)
-//     printf("Objective: %s\n", msg);
-//   number_t n, new_n;
-//   new_number(&n, BINARY, num, iws);
-//   printf("num = ");
-//   print_u64(n.num, iws);
-//   printf("\n");
-//   printf("expected new_num = %s\n", expected);
-//   copy_number(&new_n, &n, ows);
-//   printf("actual new_num = ");
-//   print_u64(new_n.num, ows);
-//   printf("\n");
-//   int ret = isEqualToBitstring(&new_n, expected);
-//   if (!ret)
-//     printf("Test Passed!\n");
-//   else
-//     printf("Test Failed :(\n");
-//   return ret;
-// }
 
 int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
              char *msg) {
