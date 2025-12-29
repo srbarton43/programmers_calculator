@@ -37,7 +37,7 @@ int divide(number_t *out, number_t *denominator, number_t *numerator, int wordsi
 static int div_and_mod(number_t *quotient, number_t *modulus, number_t *denominator,
                        number_t *numerator, int wordsize);
 
-static void print_u64(u64 *num, int wordsize);
+static void print_bitstring(u64 *num, int wordsize);
 static void print_hex(u64 *num, int wordsize);
 static int bitstring_to_number(const char *bitstring, int wordsize, number_t *out);
 static int hexstring_to_number(const char *hexstring, int wordsize, number_t *out);
@@ -142,9 +142,11 @@ static int hexstring_to_number(const char *hexstring, int wordsize, number_t *ou
   uint16_t h_len = strlen(hexstring);
   
   // check for too long hexstring
+  // simple version
   if ( h_len > (wordsize + 3) / 4 ) {
     return ERROR;
   }
+  // complex version
   u64 msn_bit = 64 - __builtin_clzll(get_nibble_val(hexstring[0]));
   if (msn_bit + (h_len - 1) * 4 > wordsize) {
     return ERROR;
@@ -213,7 +215,7 @@ void number_print(number_t *number) {
 #endif
   printf("WORDSIZE %d\n", number->wordsize);
   printf("BITSTRING: ");
-  print_u64(number->num, number->wordsize);
+  print_bitstring(number->num, number->wordsize);
   printf("\n");
   printf("Integer Value: ");
   print_signed_decimal(number);
@@ -231,7 +233,7 @@ void number_print(number_t *number) {
   printf("--------------\n");
 }
 
-static void print_u64(u64 *num, int wordsize) {
+static void print_bitstring(u64 *num, int wordsize) {
   printf("0b");
   for (int i = 1; i <= wordsize; i++) {
     u64 mask = 1ULL << (wordsize - i) % WIDTH;
@@ -284,15 +286,20 @@ int ones_comp(number_t *out, number_t *num, int wordsize) {
 int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
-  bubble_up_overflows(out, num, NULL);
+  number_t stack_num = *num;
+  bubble_up_overflows(out, &stack_num, NULL);
   out->wordsize = wordsize;
   number_t ones = {0};
-  ones_comp(&ones, num, wordsize);
+  ones_comp(&ones, &stack_num, wordsize);
   number_t mask = {0};
   get_max_number(&mask, wordsize);
   and(&ones, &ones, &mask, wordsize);
   add(out, &ones, &_one_, wordsize);
   out->metadata.INTERPRET_SIGNED ^= 1;
+  // weird edge case where mag(max_negative_number) > max_pos
+  if (equal_to(out, &stack_num)) {
+    out->metadata.SIGNED_OVERFLOW ^= stack_num.metadata.SIGNED_OVERFLOW;
+  }
   return SUCCESS;
 }
 
@@ -1297,12 +1304,12 @@ int test_twos_comp(char *num, char *expected, int wordsize, char *msg) {
   number_t twos;
   new_number(&n, BINARY, num, wordsize);
   printf("num = ");
-  print_u64(n.num, wordsize);
+  print_bitstring(n.num, wordsize);
   printf("\n");
   printf("expected two's complement = %s\n", expected);
   twos_comp(&twos, &n, wordsize);
   printf("actual two's complement = ");
-  print_u64(twos.num, wordsize);
+  print_bitstring(twos.num, wordsize);
   printf("\n");
   int ret = isEqualToBitstring(&twos, expected);
   if (!ret)
@@ -1320,15 +1327,15 @@ int test_lshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   new_number(&n, BINARY, num, wordsize);
   new_number(&p, BINARY, pos, wordsize);
   printf("num = ");
-  print_u64(n.num, wordsize);
+  print_bitstring(n.num, wordsize);
   printf("\n");
   printf("pos = ");
-  print_u64(p.num, wordsize);
+  print_bitstring(p.num, wordsize);
   printf("\n");
   printf("expected num << pos = %s\n", expected);
   lshift(&res, &n, &p, wordsize);
   printf("actual num << pos = ");
-  print_u64(res.num, wordsize);
+  print_bitstring(res.num, wordsize);
   printf("\n");
   int ret = isEqualToBitstring(&res, expected);
   if (!ret)
@@ -1346,15 +1353,15 @@ int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   new_number(&n, BINARY, num, wordsize);
   new_number(&p, BINARY, pos, wordsize);
   printf("num = ");
-  print_u64(n.num, wordsize);
+  print_bitstring(n.num, wordsize);
   printf("\n");
   printf("pos = ");
-  print_u64(p.num, wordsize);
+  print_bitstring(p.num, wordsize);
   printf("\n");
   printf("expected num >> pos = %s\n", expected);
   rshift(&res, &n, &p, wordsize);
   printf("actual num >> pos = ");
-  print_u64(res.num, wordsize);
+  print_bitstring(res.num, wordsize);
   printf("\n");
   int ret = isEqualToBitstring(&res, expected);
   if (!ret)
@@ -1373,15 +1380,15 @@ int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("a = ");
-  print_u64(a.num, aWs);
+  print_bitstring(a.num, aWs);
   printf("\n");
   printf("b = ");
-  print_u64(b.num, bWs);
+  print_bitstring(b.num, bWs);
   printf("\n");
   printf("expected a+b = %s\n", expected);
   add(&sum, &a, &b, oWs);
   printf("actual a+b = ");
-  print_u64(sum.num, oWs);
+  print_bitstring(sum.num, oWs);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)
@@ -1402,15 +1409,15 @@ int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
   number_print(&a);
   number_print(&a);
   printf("b = ");
-  print_u64(b.num, bWs);
+  print_bitstring(b.num, bWs);
   printf("\n");
   printf("a = ");
-  print_u64(a.num, aWs);
+  print_bitstring(a.num, aWs);
   printf("\n");
   printf("expected b-a = %s\n", expected);
   sub(&sum, &a, &b, oWs);
   printf("actual b-a = ");
-  print_u64(sum.num, oWs);
+  print_bitstring(sum.num, oWs);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)
@@ -1429,16 +1436,16 @@ int test_and(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("b = ");
-  print_u64(b.num, bWs);
+  print_bitstring(b.num, bWs);
   printf("\n");
   printf("a = ");
-  print_u64(a.num, aWs);
+  print_bitstring(a.num, aWs);
   printf("\n");
   printf("expected a&b = %s\n", expected);
   and(&anded, &a, &b, ws);
   number_print(&anded);
   printf("actual a&b = ");
-  print_u64(anded.num, ws);
+  print_bitstring(anded.num, ws);
   printf("\n");
   int ret = isEqualToBitstring(&anded, expected);
   if (!ret)
@@ -1456,17 +1463,17 @@ int test_or(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("a = ");
-  print_u64(a.num, aWs);
+  print_bitstring(a.num, aWs);
   printf("\n");
   number_print(&a);
   printf("b = ");
-  print_u64(b.num, bWs);
+  print_bitstring(b.num, bWs);
   printf("\n");
   number_print(&b);
   printf("expected a|b = %s\n", expected);
   or(&ored, &a, &b, ws);
   printf("actual a|b = ");
-  print_u64(ored.num, ws);
+  print_bitstring(ored.num, ws);
   printf("\n");
   number_print(&ored);
   int ret = isEqualToBitstring(&ored, expected);
