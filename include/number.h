@@ -21,8 +21,9 @@ typedef struct number {
   int wordsize;          // wordsize for the bitstring
   u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
   struct {
-    unsigned int UNSIGNED_OVERFLOW : 1;
-    unsigned int SIGNED_OVERFLOW : 1;
+    unsigned short UNSIGNED_OVERFLOW  : 1;
+    unsigned short SIGNED_OVERFLOW    : 1;
+    unsigned short INTERPRET_SIGNED   : 1;
   } metadata; // stores number metadata about overflow, etc
 } number_t;
 

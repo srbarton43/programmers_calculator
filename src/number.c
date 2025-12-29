@@ -174,9 +174,11 @@ static u64 get_nibble_val(char c) {
 static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
   out->metadata.SIGNED_OVERFLOW |= a->metadata.SIGNED_OVERFLOW;
   out->metadata.UNSIGNED_OVERFLOW |= a->metadata.UNSIGNED_OVERFLOW;
+  out->metadata.INTERPRET_SIGNED |= a->metadata.INTERPRET_SIGNED;
   if (NULL != b) {
     out->metadata.SIGNED_OVERFLOW |= b->metadata.SIGNED_OVERFLOW;
     out->metadata.UNSIGNED_OVERFLOW |= b->metadata.UNSIGNED_OVERFLOW;
+    out->metadata.INTERPRET_SIGNED |= b->metadata.INTERPRET_SIGNED;
   }
   return SUCCESS;
 }
@@ -205,9 +207,9 @@ void number_print(number_t *number) {
   printf("--------------\n");
 #ifdef DEBUG
   printf("NUMBER %p\n", number);
-  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u } }\n", number->wordsize,
+  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u, %u } }\n", number->wordsize,
          number->num[0], number->num[1], number->metadata.SIGNED_OVERFLOW,
-         number->metadata.UNSIGNED_OVERFLOW);
+         number->metadata.UNSIGNED_OVERFLOW, number->metadata.INTERPRET_SIGNED);
 #endif
   printf("WORDSIZE %d\n", number->wordsize);
   printf("BITSTRING: ");
@@ -290,12 +292,12 @@ int twos_comp(number_t *out, number_t *num, int wordsize) {
   get_max_number(&mask, wordsize);
   and(&ones, &ones, &mask, wordsize);
   add(out, &ones, &_one_, wordsize);
+  out->metadata.INTERPRET_SIGNED ^= 1;
   return SUCCESS;
 }
 
-// todo: does this work for self-assign??
 int add(number_t *out, number_t *a, number_t *b, int wordsize) {
-  if (!a || !b | !out) {
+  if (!a || !b || !out) {
     perror("Can't add a NULL number(s)");
     return ERROR;
   }
@@ -317,12 +319,12 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
   
   if ((oMSB && !bMSB && !aMSB) || (!oMSB && aMSB && bMSB))
     out->metadata.SIGNED_OVERFLOW = 1;
-  
-  number_t max_unsigned = {0};
-  get_max_number(&max_unsigned, wordsize);
-  if (greater_than(out, &max_unsigned))
-    out->metadata.UNSIGNED_OVERFLOW = 1;
-
+  if (! (a->metadata.INTERPRET_SIGNED ||  b->metadata.INTERPRET_SIGNED)) {
+    number_t max_unsigned = {0};
+    get_max_number(&max_unsigned, wordsize);
+    if (greater_than(out, &max_unsigned))
+      out->metadata.UNSIGNED_OVERFLOW = 1;
+  }
   return SUCCESS;
 }
 
