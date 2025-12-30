@@ -1208,7 +1208,7 @@ static void print_decimal(number_t *number, int is_signed) {
   number_t masked_number = ZERO(number->wordsize);
   and(&masked_number, number, &mask, number->wordsize);
 
-  if (greater_than(number, &MAX_DECIMAL)) {
+  if (greater_than(&masked_number, &MAX_DECIMAL)) {
     printf("Too large to represent.");
     return;
   }
