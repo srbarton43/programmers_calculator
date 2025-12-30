@@ -42,10 +42,9 @@ static void print_hex(u64 *num, int wordsize);
 static int bitstring_to_number(const char *bitstring, int wordsize, number_t *out);
 static int hexstring_to_number(const char *hexstring, int wordsize, number_t *out);
 static int decstring_to_number(const char *decstring, int wordsize, number_t *out);
-static int bubble_up_overflows(number_t *out, number_t *a, number_t *b);
+static int bubble_up_metadata(number_t *out, number_t *a, number_t *b);
 static u64 get_nibble_val(char c);
 static int compare(const number_t *a, const number_t *b);
-static u64 get_max_unsigned(int wordsize);
 static int get_max_number(number_t *out, int wordsize);
 static int zero_number(number_t *out);
 static void u32_lshift(u32 *arr, unsigned char shift);
@@ -80,13 +79,11 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize) {
         break;
       }
       case DECIMAL: {
-        // TODO
         if (ERROR == decstring_to_number(number, wordsize, new_num))
           new_num->metadata.UNSIGNED_OVERFLOW = 1;
         break;
       }
       case HEXADECIMAL: {
-        printf("not supported for >64bit\n");
         if (ERROR == hexstring_to_number(number, wordsize, new_num))
           new_num->metadata.UNSIGNED_OVERFLOW = 1;
         break;
@@ -115,7 +112,6 @@ static int bitstring_to_number(const char *bitstring, int wordsize, number_t *ou
 }
 
 static int decstring_to_number(const char *decstring, int wordsize, number_t *out) {
-  // TODO: ignore leading zeroes?
   uint16_t n_dig = strlen(decstring);
   number_t ten = { 128, {0, 0xa}, {0, 0}};
   int ret = 0;
@@ -156,7 +152,6 @@ static int hexstring_to_number(const char *hexstring, int wordsize, number_t *ou
     u64 nibble = get_nibble_val(hexstring[h_len - i]);
     out->num[SIZE - ((i - 1) * 4) / WIDTH - 1] |=
         nibble << (u64)((4ULL * ((u64)i - 1ULL)) % WIDTH);
-    printf("%d\n", i);
   }
   
   return SUCCESS;
@@ -173,7 +168,7 @@ static u64 get_nibble_val(char c) {
     return 0;
 }
 
-static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
+static int bubble_up_metadata(number_t *out, number_t *a, number_t *b) {
   out->metadata.SIGNED_OVERFLOW |= a->metadata.SIGNED_OVERFLOW;
   out->metadata.UNSIGNED_OVERFLOW |= a->metadata.UNSIGNED_OVERFLOW;
   out->metadata.INTERPRET_SIGNED |= a->metadata.INTERPRET_SIGNED;
@@ -184,18 +179,6 @@ static int bubble_up_overflows(number_t *out, number_t *a, number_t *b) {
   }
   return SUCCESS;
 }
-
-// int number_getSdec(int64_t *out, number_t *number) {
-//   int ws = number->wordsize;
-//   u64 num = number->num;
-//   if ((num & (1ULL << (ws - 1ULL))) < 1ULL) {
-//     *out = (int64_t)num;
-//     return SUCCESS;
-//   }
-//   u64 mask = (1ULL << (ws - 1)) - 1ULL;
-//   *out = -(1ULL << (ws - 1ULL)) + (num & mask);
-//   return SUCCESS;
-// }
 
 void delete_number(number_t *number) {
   if (number) {
@@ -287,7 +270,7 @@ int twos_comp(number_t *out, number_t *num, int wordsize) {
   if (out == NULL || num == NULL)
     return ERROR;
   number_t stack_num = *num;
-  bubble_up_overflows(out, &stack_num, NULL);
+  bubble_up_metadata(out, &stack_num, NULL);
   out->wordsize = wordsize;
   number_t ones = {0};
   ones_comp(&ones, &stack_num, wordsize);
@@ -316,7 +299,7 @@ int add(number_t *out, number_t *a, number_t *b, int wordsize) {
                           : out->num[i] < b->num[i] + carry_out;
   }
   // out->num = (a->num + b->num) & MASK;
-  bubble_up_overflows(out, a, b);
+  bubble_up_metadata(out, a, b);
   u64 aMSB = a->num[SIZE - (wordsize - 1) / WIDTH - 1] &
              (1ULL << (wordsize - 1) % WIDTH);
   u64 bMSB = b->num[SIZE - (wordsize - 1) / WIDTH - 1] &
@@ -987,7 +970,6 @@ static void u32_subtract(u32 *left, u32 *right) {
 
   // add one
   u32 carry_out = 0;
-  u32 cur = 0;
   for (int i = 2 * SIZE - 1; i >= 0; i--) {
     temp[i] += 1 + carry_out;
     // Add left to create (left + (~right) + 1) = left - right
@@ -1029,30 +1011,18 @@ int modulo(number_t *out, number_t *denominator, number_t *numerator, int wordsi
 int lshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   number_t stk_num = *number;
   zero_number(out);
-  bubble_up_overflows(out, &stk_num, positions);
+  bubble_up_metadata(out, &stk_num, positions);
   // check for unsigned overflows
   u64 lshift = positions->num[SIZE - 1];
   number_t max_num = ZERO(wordsize), shift_max_num = ZERO(wordsize);
   get_max_number(&max_num, wordsize);
   rshift(&shift_max_num, &max_num, positions, wordsize);
   if (greater_than(&stk_num, &shift_max_num)) {
-#ifdef DEBUG
-    // printf("%s: unsigned overflow w/ num=\n", __FUNCTION__);
-    // number_print(&stk_num);
-    // printf("shift=\n");
-    // number_print(positions);
-#endif
     out->metadata.UNSIGNED_OVERFLOW = 1;
   }
   out->wordsize = wordsize;
   u64 shift_in = 0;
   for (int i = SIZE - 1; i >= (int)(0 + lshift / WIDTH); i--) {
-#ifdef DEBUG
-    // printf("shift_in=%llx\n", shift_in);
-    // printf("index = %d\n", i-(int)lshift/WIDTH);
-    // printf("shifted=%llx\n", (stk_num.num[i] << lshift % WIDTH) | (shift_in
-    // >> ((WIDTH - lshift) % WIDTH)));
-#endif
     out->num[i - (int)lshift / WIDTH] =
         (stk_num.num[i] << lshift % WIDTH) |
         (shift_in >> ((WIDTH - lshift) % WIDTH));
@@ -1068,8 +1038,7 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   get_max_number(&mask, wordsize);
   and(&stk_num, number, &mask, wordsize);
   zero_number(out);
-  bubble_up_overflows(out, &stk_num, positions);
-  // TODO: use get_dec eventually
+  bubble_up_metadata(out, &stk_num, positions);
   u64 rshift = positions->num[SIZE - 1];
   if (rshift >= wordsize || rshift >= SIZE * WIDTH) {
 #ifdef DEBUG
@@ -1082,12 +1051,6 @@ int rshift(number_t *out, number_t *number, number_t *positions, int wordsize) {
   out->wordsize = wordsize;
   u64 shift_in = 0;
   for (int i = 0; i < SIZE - rshift / WIDTH; i++) {
-#ifdef DEBUG
-    // printf("shift_in=%llx\n", shift_in);
-    // printf("index = %d\n", i-(int)rshift/WIDTH);
-    // printf("shifted=%llx\n", (stk_num.num[i] >> rshift % WIDTH) | (shift_in
-    // << ((WIDTH - rshift) % WIDTH)));
-#endif
     out->num[i + rshift / WIDTH] =
         stk_num.num[i] >> rshift | shift_in << (WIDTH - rshift);
     shift_in = stk_num.num[i] & ((1ULL << rshift % WIDTH) - 1);
@@ -1136,7 +1099,7 @@ static int zero_number(number_t *out) {
 int and(number_t *out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
-  bubble_up_overflows(out, a, b);
+  bubble_up_metadata(out, a, b);
   out->wordsize = wordsize;
   for (int i = 0; i < SIZE; i++)
     out->num[i] = a->num[i] & b->num[i];
@@ -1147,16 +1110,10 @@ int and(number_t *out, number_t *a, number_t *b, int wordsize) {
 int or(number_t *out, number_t *a, number_t *b, int wordsize) {
   if (out == NULL || a == NULL || b == NULL)
     return ERROR;
-  bubble_up_overflows(out, a, b);
+  bubble_up_metadata(out, a, b);
   for (int i = 0; i < SIZE; i++)
     out->num[i] = a->num[i] | b->num[i];
   return SUCCESS;
-}
-
-static u64 get_max_unsigned(int wordsize) {
-  if (wordsize < 64)
-    return (1ULL << wordsize) - 1ULL;
-  return UINT64_MAX;
 }
 
 static int get_max_number(number_t *out, int wordsize) {
