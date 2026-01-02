@@ -8,9 +8,7 @@
 
   int yylex(void);
   int yylex_destroy(void);
-  void yyerror(number_t **number, status_t *status, u64 *arg, const char *msg, ...);
-
-  // Use _zero_ constant instead of creating our own
+  void yyerror(number_flag_t *number, status_t *status, u64 *arg, const char *msg, ...);
 %}
 
 %code requires { 
@@ -18,13 +16,13 @@
   #include "utils.h"
 }
 
-%parse-param {number_t **output} {status_t *status} {u64 *arg}
+%parse-param {number_flag_t *output} {status_t *status} {u64 *arg}
 
 /* tokens */
 
 %union {
   char *s_value;
-  number_flag_t n_value; // TODO: use a struct with a flag for if a variable
+  number_flag_t n_value;
   char c_value;
   int i_value;
 }
@@ -57,7 +55,7 @@ line: EOL
         printf("num=%p\n", $1.number);
         number_debug($1.number);
 #endif
-        *output = $1.number;
+        *output = $1;
         YYACCEPT;
       }
     | expression YYEOF
@@ -65,7 +63,7 @@ line: EOL
 #ifdef DEBUG
         printf("evaluate expr\n");
 #endif
-        *output = $1.number;
+        *output = $1;
         YYACCEPT;
       }
     | error EOL {
@@ -93,11 +91,11 @@ statement: QUIT EOL
          | VAR '=' expression EOL
           {
 #ifdef DEBUG
-            printf("var assignment\n"); //TODO: a=b
+            printf("var assignment\n");
 #endif
             status->VAR_ASSN = 1;
             *arg = (u64) $1;
-            *output = $3.number;
+            *output = $3;
             YYACCEPT;
           }
          | expression
@@ -120,7 +118,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              add(new_num, $1.number, $3.number, prog_data->wordsize);
+              add(new_num, $1.number, $3.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -135,7 +133,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              sub(new_num, $3.number, $1.number, prog_data->wordsize);
+              sub(new_num, $3.number, $1.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -150,7 +148,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              rshift(new_num, $1.number, $3.number, prog_data->wordsize);
+              rshift(new_num, $1.number, $3.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -165,7 +163,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              lshift(new_num, $1.number, $3.number, prog_data->wordsize);
+              lshift(new_num, $1.number, $3.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -180,7 +178,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              and(new_num, $1.number, $3.number, prog_data->wordsize);
+              and(new_num, $1.number, $3.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -195,7 +193,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              or(new_num, $1.number, $3.number, prog_data->wordsize);
+              or(new_num, $1.number, $3.number, g_prog_data.wordsize);
               if ($1.flag == NOT_VAR)
                 number_destroy($1.number);
               if ($3.flag == NOT_VAR)
@@ -210,7 +208,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              twos_comp(new_num, $2.number, prog_data->wordsize);
+              twos_comp(new_num, $2.number, g_prog_data.wordsize);
               if ($2.flag == NOT_VAR)
                 number_destroy($2.number);
               number_flag_t out = {new_num, NOT_VAR};
@@ -223,7 +221,7 @@ expression: number
 #endif
               number_t *new_num = NULL;
               number_alloc(&new_num);
-              ones_comp(new_num, $2.number, prog_data->wordsize);
+              ones_comp(new_num, $2.number, g_prog_data.wordsize);
               if ($2.flag == NOT_VAR)
                 number_destroy($2.number);
               number_flag_t out = {new_num, NOT_VAR};
@@ -247,7 +245,7 @@ number: DEC
           printf("before: new_num=%p\n", new_num);
           number_debug(new_num);
 #endif
-          int ret = new_number(new_num, DECIMAL, $1, prog_data->wordsize);
+          int ret = new_number(new_num, DECIMAL, $1, g_prog_data.wordsize);
 #ifdef DEBUG
           printf("after: new_num=%p\n", new_num);
           number_debug(new_num);
@@ -267,7 +265,7 @@ number: DEC
 #endif
           number_t *new_num = NULL;
           number_alloc(&new_num);
-          int ret = new_number(new_num, HEXADECIMAL, $1, prog_data->wordsize);
+          int ret = new_number(new_num, HEXADECIMAL, $1, g_prog_data.wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
@@ -283,7 +281,7 @@ number: DEC
 #endif
           number_t *new_num = NULL;
           number_alloc(&new_num);
-          int ret = new_number(new_num, BINARY, $1, prog_data->wordsize);
+          int ret = new_number(new_num, BINARY, $1, g_prog_data.wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
@@ -297,8 +295,8 @@ number: DEC
 #ifdef DEBUG
           printf("variable %c\n", $1);
 #endif
-          number_t *var_value = NULL; // TODO: set a variable flag
-          if (SUCCESS == vars_get_num(&var_value, prog_data, $1)) {
+          number_t *var_value = NULL;
+          if (SUCCESS == vars_get_num(&var_value, $1)) {
 #ifdef DEBUG
             printf("number=%p\n", var_value);
 #endif
@@ -314,12 +312,5 @@ number: DEC
 
 %%
 
-void yyerror(number_t **number, status_t *status, u64 *arg, const char *msg, ...)
-  {
-  va_list args;
-
-  //va_start (args, msg);
-  //vfprintf (stderr, msg, args);
-  //fprintf (stderr, "\n");
-  //va_end (args);
+void yyerror(number_flag_t *number, status_t *status, u64 *arg, const char *msg, ...) {
 }

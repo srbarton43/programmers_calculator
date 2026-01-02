@@ -21,14 +21,14 @@
 EditLine *el;
 #endif
 
-program_data_t *prog_data;
+program_data_t g_prog_data;
 // Use _zero_ from number.c instead
 static const status_t _emptystatus_ = {0};
 void yylex_destroy(void);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern YY_BUFFER_STATE yy_scan_string(const char *str);
 extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
-extern int yyparse(number_t **output, status_t *status, u64 *arg);
+extern int yyparse(number_flag_t *output, status_t *status, u64 *arg);
 
 /* static functions for libedit */
 #ifdef LIBEDIT
@@ -43,11 +43,12 @@ int evaluate_expr(const char *expr) {
   int ret;
   number_t *number = 0;
   number_alloc(&number);
+  number_flag_t number_flag = {number, NOT_VAR};
   status_t status = _emptystatus_;
   u64 arg = 0;
 
   yy_scan_string(expr);
-  ret = yyparse(&number, &status, &arg);
+  ret = yyparse(&number_flag, &status, &arg);
   if (ret != 0) {
     printf("syntax error\n");
   } else {
@@ -76,7 +77,7 @@ int el_mainloop() {
   const char *line;
   int keepreading = 1;
   HistEvent ev;
-  number_t *number = 0;
+  number_flag_t number_flag = {NULL, NOT_VAR};
   status_t status = _emptystatus_;
   u64 arg = 0;
   YY_BUFFER_STATE buffer;
@@ -113,7 +114,7 @@ int el_mainloop() {
     if (count > 0) {
       /* Clean up our memory */
       buffer = yy_scan_string(line);
-      ret = yyparse(&number, &status, &arg);
+      ret = yyparse(&number_flag, &status, &arg);
       if (!status.EMPTY)
         history(myhistory, &ev, H_ENTER, line);
       // printf("ret=%d\n", ret);
@@ -129,32 +130,39 @@ int el_mainloop() {
       } else if (status.POISON) {
         printf("Error...\n");
       } else if (status.WSIZE_PR) {
-        printf("The current wordsize is %d\n", prog_data->wordsize);
+        printf("The current wordsize is %d\n", g_prog_data.wordsize);
       } else if (status.WSIZE_CHG) {
         int new_wsize = arg;
         if (new_wsize < 4 || new_wsize > 128) {
           printf("unsupported wordsize: %d\n", new_wsize);
         } else {
           printf("changed wordsize to %d\n", new_wsize);
-          prog_data->wordsize = new_wsize;
+          g_prog_data.wordsize = new_wsize;
         }
       } else if (status.VAR_ASSN) {
         // var assignment
-        vars_set_num(prog_data, (char)arg, number); // TODO: don't copy number, use ptr
+        if (number_flag.flag == NOT_VAR) {
+          vars_set_num((char)arg, number_flag.number);
+        } else {
+          number_t *var_copy = 0;
+          number_alloc(&var_copy);
+          copy_number(var_copy, number_flag.number, g_prog_data.wordsize);
+          vars_set_num((char)arg, var_copy);
+        }
         printf("%c\n  = \n", (char)arg);
-        number_print(number);
+        number_print(number_flag.number);
       } else {
-        if (n_UNSIGNED_OVERFLOW(number))
+        if (n_UNSIGNED_OVERFLOW(number_flag.number))
           printf("Error: There was a unsigned overflow...the resulting number "
                  "was larger than the wordsize!\n");
         else {
           printf("  =\n");
-          number_print(number);
-          if (n_SIGNED_OVERFLOW(number))
+          number_print(number_flag.number);
+          if (n_SIGNED_OVERFLOW(number_flag.number))
             printf("Warning: There was a signed overflow...the integer value "
                    "might be inaccurate!\n");
-          if (! status.ACCESS_VAR) {
-            number_destroy(number);
+          if (number_flag.flag == NOT_VAR) {
+            number_destroy(number_flag.number);
           }
         }
       }
@@ -194,22 +202,13 @@ int rl_mainloop(void) {
 }
 #endif
 
-program_data_t *init_program_data(void) {
-  program_data_t *p_data = malloc(sizeof(program_data_t));
-
-  p_data->wordsize = DEFAULT_WS;
-  p_data->status = _emptystatus_;
-
-  return p_data;
-}
-
 void print_program_data(program_data_t *p_data) {
   printf("\n***********************\n");
   printf("Variables\n");
   for (int i = 0; i < VAR_NUM; i++) {
     printf("%c = ", 'a' + i);
     number_t *var_val = 0;
-    if (SUCCESS == vars_get_num(&var_val, p_data, i+'a')) {
+    if (SUCCESS == vars_get_num(&var_val, i+'a')) {
       number_print(var_val);
     } else {
       printf("\n");
@@ -218,27 +217,16 @@ void print_program_data(program_data_t *p_data) {
   printf("wordsize: %d\n", p_data->wordsize);
 }
 
-void free_program_data(program_data_t *p_data) { 
-  for (int i = 0; i < VAR_NUM; i++) {
-    number_destroy(p_data->vars[i]);
-  }
-
-  free(p_data); 
-}
-
-int vars_get_num(number_t **out, program_data_t *p_data, char var) {
+int vars_get_num(number_t **out, char var) {
   int idx = var - 'a';
-  *out = p_data->vars[idx];
+  *out = g_prog_data.vars[idx];
   if (*out == NULL) {
     return ERROR;
   }
   return SUCCESS;
 }
 
-void vars_set_num(program_data_t *p_data, char var, number_t *num) {
+void vars_set_num(char var, number_t *num) {
   int idx = var - 'a';
-  if (!p_data->vars[idx]) {
-    number_alloc(&p_data->vars[idx]);
-  }
-  copy_number(p_data->vars[idx], num, p_data->wordsize);
+  g_prog_data.vars[idx] = num;
 }

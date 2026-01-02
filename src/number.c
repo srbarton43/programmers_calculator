@@ -305,7 +305,8 @@ int copy_number(number_t *out, number_t *number, int wordsize) {
     exit(69);
   } else
     out->wordsize = wordsize;
-  memcpy(out->num, number->num, SIZE_BYTES); // TODO: copy flags too
+  memcpy(out->num, number->num, SIZE_BYTES);
+  memcpy(&out->metadata, &number->metadata, sizeof(((number_t *)0)->metadata)); // crazy compiler magic
   return SUCCESS;
 }
 
@@ -733,7 +734,6 @@ static int div_and_mod(number_t *quotient, number_t *remainder,
 #endif
 
       // step 3 of Knuth's algorithm D
-      u32 one = 1;
       u32 x_3digit[2 * SIZE] = {0};
       u32 y_2digit[2 * SIZE] = {0};
       u64 q_u128 = 0;

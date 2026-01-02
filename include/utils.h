@@ -35,7 +35,7 @@ typedef struct program_data {
 } program_data_t;
 
 // program data struct ... holds all program state
-extern program_data_t *prog_data;
+extern program_data_t g_prog_data;
 
 int el_mainloop(void);
 
@@ -44,17 +44,11 @@ int rl_mainloop(void);
 int evaluate_expr(const char *expr);
 
 // PROGRAM DATA FUNCTIONS
-// initializes program data values
-program_data_t *init_program_data(void);
-
 // prints program data for debugging
 void print_program_data(program_data_t *prog_data);
 
-// frees program data struct
-void free_program_data(program_data_t *prog_data);
+int vars_get_num(number_t **out, char var);
 
-int vars_get_num(number_t **out, program_data_t *prog_data, char var);
-
-void vars_set_num(program_data_t *prog_data, char var, number_t *num);
+void vars_set_num(char var, number_t *num);
 
 #endif
