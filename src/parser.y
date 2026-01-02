@@ -8,7 +8,7 @@
 
   int yylex(void);
   int yylex_destroy(void);
-  void yyerror(number_t* number, status_t *status, u64 *arg, const char *msg, ...);
+  void yyerror(number_t **number, status_t *status, u64 *arg, const char *msg, ...);
 
   // Use _zero_ constant instead of creating our own
 %}
@@ -18,13 +18,13 @@
   #include "utils.h"
 }
 
-%parse-param {number_t *output} {status_t *status} {u64 *arg}
+%parse-param {number_t **output} {status_t *status} {u64 *arg}
 
 /* tokens */
 
 %union {
   char *s_value;
-  number_t n_value;
+  number_flag_t n_value; // TODO: use a struct with a flag for if a variable
   char c_value;
   int i_value;
 }
@@ -54,8 +54,10 @@ line: EOL
       {
 #ifdef DEBUG
         printf("line\n");
+        printf("num=%p\n", $1.number);
+        number_debug($1.number);
 #endif
-        *output = $1;
+        *output = $1.number;
         YYACCEPT;
       }
     | expression YYEOF
@@ -63,7 +65,7 @@ line: EOL
 #ifdef DEBUG
         printf("evaluate expr\n");
 #endif
-        *output = $1;
+        *output = $1.number;
         YYACCEPT;
       }
     | error EOL {
@@ -83,7 +85,7 @@ statement: QUIT EOL
             }
          | W_SIZE number EOL
             {
-              *arg = (u64) $2.num[SIZE-1];
+              *arg = (u64) n_getLeastSigChunk($2.number);
               status->POISON = 0;
               status->WSIZE_CHG = 1;
               YYACCEPT;
@@ -91,17 +93,19 @@ statement: QUIT EOL
          | VAR '=' expression EOL
           {
 #ifdef DEBUG
-            printf("var assignment\n");
+            printf("var assignment\n"); //TODO: a=b
 #endif
             status->VAR_ASSN = 1;
             *arg = (u64) $1;
-            *output = $3;
+            *output = $3.number;
             YYACCEPT;
           }
          | expression
             {
 #ifdef DEBUG
               printf("expression\n");
+              printf("num=%p\n", $1.number);
+              number_debug($1.number);
 #endif
               $$ = $1;
             }
@@ -114,130 +118,116 @@ expression: number
 #ifdef DEBUG
               printf("adding\n");
 #endif
-              //number_t* num = add(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              add(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              add(new_num, $1.number, $3.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | expression '-' expression
             {
 #ifdef DEBUG
               printf("subtracting\n");
 #endif
-              //number_t* num = sub(nums_get_num(prog_data, $3), nums_get_num(prog_data, $1), prog_data->wordsize);
-              //char* key = nums_add_number(prog_data, num);
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              sub(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$3, &$1, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              sub(new_num, $3.number, $1.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | expression RSHIFT number
             {
 #ifdef DEBUG
               printf("rshift\n");
 #endif
-              //number_t* num = rshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              //free($1); free($3);
-              //char* key = nums_add_number(prog_data, num);
-              //$$ = key;
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              rshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              rshift(new_num, $1.number, $3.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | expression LSHIFT number
             {
 #ifdef DEBUG
               printf("lshift\n");
 #endif
-              //number_t* num = lshift(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              //free($1); free($3);
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              lshift(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
-              //printf("result: \n"); number_print(num);
-              //char* key = nums_add_number(prog_data, num);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              lshift(new_num, $1.number, $3.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | expression '&' expression
             {
 #ifdef DEBUG
               printf("and\n");
 #endif
-              //number_t* num = and(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              //free($1); free($3);
-              //char* key = nums_add_number(prog_data, num);
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              and(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              and(new_num, $1.number, $3.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | expression '|' expression
             {
 #ifdef DEBUG
               printf("or\n");
 #endif
-              //number_t* num = or(nums_get_num(prog_data, $1), nums_get_num(prog_data, $3), prog_data->wordsize);
-              //free($1); free($3);
-              //char* key = nums_add_number(prog_data, num);
-              //$$ = key;
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              or(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$1, &$3, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              or(new_num, $1.number, $3.number, prog_data->wordsize);
+              if ($1.flag == NOT_VAR)
+                number_destroy($1.number);
+              if ($3.flag == NOT_VAR)
+                number_destroy($3.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | '-' expression %prec NEG
             {
 #ifdef DEBUG
               printf("negation\n");
 #endif
-              //number_t* num = twos_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
-              //free($2);
-              //char* key = nums_add_number(prog_data, num);
-              //$$ = key;
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              twos_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              twos_comp(new_num, $2.number, prog_data->wordsize);
+              if ($2.flag == NOT_VAR)
+                number_destroy($2.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | '~' expression
             {
 #ifdef DEBUG
               printf("bitwise NOT\n");
 #endif
-              //number_t* num = ones_comp(nums_get_num(prog_data, $2), prog_data->wordsize);
-              //free($2);
-              //char* key = nums_add_number(prog_data, num);
-              //$$ = key;
-              if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-                prog_data->nbuf_ptr--;
-                status->NUM_BUF_OF = 1;
-              }
-              prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-              ones_comp(&prog_data->numbers_buf[prog_data->nbuf_ptr], &$2, prog_data->wordsize);
-              $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+              number_t *new_num = NULL;
+              number_alloc(&new_num);
+              ones_comp(new_num, $2.number, prog_data->wordsize);
+              if ($2.flag == NOT_VAR)
+                number_destroy($2.number);
+              number_flag_t out = {new_num, NOT_VAR};
+              $$ = out; 
             }
           | '(' expression ')'
             {
@@ -250,71 +240,81 @@ number: DEC
 #ifdef DEBUG
           printf("decimal\n");
 #endif
-          //char *ten_bit_key = ten_bit_nums_add_string(prog_data, $1);
-          //char* key = nums_add_string(prog_data, $1, DECIMAL);
-          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-            prog_data->nbuf_ptr--;
-            status->NUM_BUF_OF = 1;
-          }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], DECIMAL, $1, prog_data->wordsize);
+          
+          number_t *new_num = NULL;
+          number_alloc(&new_num);
+#ifdef DEBUG
+          printf("before: new_num=%p\n", new_num);
+          number_debug(new_num);
+#endif
+          int ret = new_number(new_num, DECIMAL, $1, prog_data->wordsize);
+#ifdef DEBUG
+          printf("after: new_num=%p\n", new_num);
+          number_debug(new_num);
+#endif
           if (ret == SUCCESS) {
             // pass
           } else {
             status->POISON = 1;
           }
-          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+          number_flag_t out = {new_num, NOT_VAR};
+          $$ = out;
         }
       | HEX
         {
 #ifdef DEBUG
           printf("hex\n");
 #endif
-          //char* key = nums_add_string(prog_data, $1, HEXADECIMAL);
-          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-            prog_data->nbuf_ptr--;
-            status->NUM_BUF_OF = 1;
-          }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], HEXADECIMAL, $1, prog_data->wordsize);
+          number_t *new_num = NULL;
+          number_alloc(&new_num);
+          int ret = new_number(new_num, HEXADECIMAL, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
             status->POISON = 1;
           }
-          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+          number_flag_t out = {new_num, NOT_VAR};
+          $$ = out;
         }
       | BIN
         {
 #ifdef DEBUG
           printf("binary\n");
 #endif
-          //char* key = nums_add_string(prog_data, $1, BINARY);
-          if (MAX_NUMBERS_COUNT == prog_data->nbuf_ptr) {
-            prog_data->nbuf_ptr--;
-            status->NUM_BUF_OF = 1;
-          }
-          prog_data->numbers_buf[prog_data->nbuf_ptr] = _zero_;
-          int ret = new_number(&prog_data->numbers_buf[prog_data->nbuf_ptr], BINARY, $1, prog_data->wordsize);
+          number_t *new_num = NULL;
+          number_alloc(&new_num);
+          int ret = new_number(new_num, BINARY, $1, prog_data->wordsize);
           if (ret == SUCCESS) {
             // pass
           } else {
             status->POISON = 1;
           }
-          $$ = prog_data->numbers_buf[prog_data->nbuf_ptr++];
+          number_flag_t out = {new_num, NOT_VAR};
+          $$ = out;
         }
-      | VAR
+      | VAR 
         {
 #ifdef DEBUG
           printf("variable %c\n", $1);
 #endif
-          $$ = vars_get_num(prog_data, $1);
+          number_t *var_value = NULL; // TODO: set a variable flag
+          if (SUCCESS == vars_get_num(&var_value, prog_data, $1)) {
+#ifdef DEBUG
+            printf("number=%p\n", var_value);
+#endif
+            status->ACCESS_VAR = 1;
+            number_flag_t out = {var_value, IS_VAR};
+            $$ = out;
+          } else {
+            status->UNDEF_VAR = 1;
+            YYACCEPT;
+          }
         }
       ;
 
 %%
 
-void yyerror(number_t *number, status_t *status, u64 *arg, const char *msg, ...)
+void yyerror(number_t **number, status_t *status, u64 *arg, const char *msg, ...)
   {
   va_list args;
 

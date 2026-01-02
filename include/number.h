@@ -17,17 +17,19 @@ typedef enum { BINARY, DECIMAL, HEXADECIMAL } type_e;
 
 
 // Complete definition lives in number.c
-typedef struct number {
-  int wordsize;          // wordsize for the bitstring
-  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
-  struct {
-    unsigned short UNSIGNED_OVERFLOW  : 1;
-    unsigned short SIGNED_OVERFLOW    : 1;
-    unsigned short INTERPRET_SIGNED   : 1;
-  } metadata; // stores number metadata about overflow, etc
-} number_t;
+typedef struct number number_t;
 
 /************** FUNCTIONS *******************/
+
+/************** n_SIZE_OF ******************/
+uint32_t n_sizeof(void);
+
+int number_alloc(number_t **out);
+int number_destroy(number_t *num);
+int number_zero(number_t *num);
+unsigned short n_UNSIGNED_OVERFLOW(number_t *num);
+unsigned short n_SIGNED_OVERFLOW(number_t *num);
+u64 n_getLeastSigChunk(number_t *out);
 
 /************** NEW_NUMBER ******************/
 /* Create a New Number
@@ -105,10 +107,6 @@ int copy_number(number_t *new, number_t *old, int wordsize);
  * Frees special numbers
  */
 void free_numbers(void);
-
-// Global constants
-extern number_t _zero_;
-extern number_t _one_;
 
 /**********     number_getSdec       *******/
 /*
@@ -269,8 +267,15 @@ int and(number_t *out, number_t *a, number_t *b, int wordsize);
  */
 int or(number_t *out, number_t *a, number_t *b, int wordsize);
 
+#ifdef DEBUG
+int number_debug(number_t *num);
+#endif
+
 #ifdef UNIT_TEST
 
+int numbers_equal(number_t *test, u64 correct_h, u64 correct_l);
+int numbers_equal_metadata(number_t *test, u64 correct_h, u64 correct_l, unsigned short correct_bm);
+int construct_number(number_t *out, int wordsize, u64 msb, u64 lsb);
 int test_twos_comp(char *num, char *expected, int wordsize, char *msg);
 int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);
 int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected, char *msg);

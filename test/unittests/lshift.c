@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "number.h"
+
+int numbers_equal(number_t *test, u64 correct_h, u64 correct_l);
+int numbers_equal_metadata(number_t *test, u64 correct_h, u64 correct_l, unsigned short correct_bm);
+int construct_number(number_t *out, int wordsize, u64 msb, u64 lsb);
+
 #include "unittest_utils.h"
 int main(int argc, char *argv[]) {
   printf("Testing LSHIFT\n");
@@ -13,18 +18,26 @@ int main(int argc, char *argv[]) {
   u64 i1, i0, o1, o0;
   int shift, wordsize;
   int overflow;
+  number_t *shifted, *num, *shift_num;
+  shifted = num = shift_num = 0;
+  number_alloc(&shifted);
+  number_alloc(&num);
+  number_alloc(&shift_num);
+  
   while (fscanf(fp, "0x%llx 0x%llx 0x%llx 0x%llx %d %d %d\n", &i1, &i0, &o1, &o0, &overflow, &shift, &wordsize) == 7) {
-    printf("0x%llx 0x%llx 0x%llx 0x%llx %d %d\n", i1, i0, o1, o0, shift, wordsize);
-    number_t shifted = {0};
-    number_t num = {wordsize, {i1, i0}, {0} };
+    printf("0x%llx 0x%llx 0x%llx 0x%llx %d %d %d\n", i1, i0, o1, o0, overflow, shift, wordsize);
+    construct_number(num, wordsize, i1, i0);
+    number_zero(shifted);
     printf("input\n");
-    number_print(&num);
-    printf("%d\n", __LINE__);
-    number_t shift_num = {8, {0, shift}, {0}};
-    lshift(&shifted, &num, &shift_num, wordsize);
+    number_debug(num);
+    construct_number(shift_num, wordsize, 0, shift);
+    printf("SHIFTING\n");
+    lshift(shifted, num, shift_num, wordsize);
     printf("output\n");
-    number_print(&shifted);
-    if (shifted.num[0] == o1 && shifted.num[1] == o0 && shifted.metadata.UNSIGNED_OVERFLOW == overflow) {
+    number_debug(shifted);
+    unsigned short correct_bitmask = overflow << 1;
+    printf("bitmask=%u\n", correct_bitmask);
+    if (numbers_equal_metadata(shifted, o1, o0, correct_bitmask)) {
       printf("Test Passed\n");
     } else {
       printf("Test Failed\n");
