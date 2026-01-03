@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     } else {
       printf("[%02d] TEST PASSED\n", test_no);
     }
-    number_print(&out);
+    number_print(stdout, &out);
     test_no++;
   }
 

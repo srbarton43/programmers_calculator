@@ -37,8 +37,6 @@ int divide(number_t *out, number_t *denominator, number_t *numerator, int wordsi
 static int div_and_mod(number_t *quotient, number_t *modulus, number_t *denominator,
                        number_t *numerator, int wordsize);
 
-static void print_bitstring(u64 *num, int wordsize);
-static void print_hex(u64 *num, int wordsize);
 static int bitstring_to_number(const char *bitstring, int wordsize, number_t *out);
 static int hexstring_to_number(const char *hexstring, int wordsize, number_t *out);
 static int decstring_to_number(const char *decstring, int wordsize, number_t *out);
@@ -188,56 +186,52 @@ void delete_number(number_t *number) {
 
 void free_numbers(void) {}
 
-void number_print(number_t *number) {
+void number_print(FILE *fp, number_t *number) {
   printf("--------------\n");
 #ifdef DEBUG
-  printf("NUMBER %p\n", number);
-  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u, %u } }\n", number->wordsize,
+  fprintf(fp, "NUMBER %p\n", number);
+  fprintf(fp, "raw_struct: { %d, { %llx, %llx }, { %u, %u, %u } }\n", number->wordsize,
          number->num[0], number->num[1], number->metadata.SIGNED_OVERFLOW,
          number->metadata.UNSIGNED_OVERFLOW, number->metadata.INTERPRET_SIGNED);
 #endif
-  printf("WORDSIZE %d\n", number->wordsize);
-  printf("BITSTRING: ");
-  print_bitstring(number->num, number->wordsize);
-  printf("\n");
-  printf("Integer Value: ");
-  print_signed_decimal(number);
-  printf("\n");
-  printf("Unsigned Integer Value: ");
-  print_unsigned_decimal(number);
-  printf("\n");
-  // int64_t sdec = 0;
-  // number_getSdec(&sdec, number);
-  // printf("Integer Value: %lld\n", (long long)sdec);
-  // printf("Unsigned Integer Value: %llu\n", (unsigned long long)number->num);
-  printf("Hexadecimal Value: ");
-  print_hex(number->num, number->wordsize);
-  printf("\n");
-  printf("--------------\n");
+  fprintf(fp, "WORDSIZE %d\n", number->wordsize);
+  fprintf(fp, "BITSTRING: ");
+  print_bitstring(fp, number);
+  fprintf(fp, "\n");
+  fprintf(fp, "Integer Value: ");
+  print_signed_decimal(fp, number);
+  fprintf(fp, "\n");
+  fprintf(fp, "Unsigned Integer Value: ");
+  print_unsigned_decimal(fp, number);
+  fprintf(fp, "\n");
+  fprintf(fp, "Hexadecimal Value: ");
+  print_hexstring(fp, number);
+  fprintf(fp, "\n");
+  fprintf(fp, "--------------\n");
 }
 
-static void print_bitstring(u64 *num, int wordsize) {
+void print_bitstring(FILE *fp, number_t *number) {
   printf("0b");
-  for (int i = 1; i <= wordsize; i++) {
-    u64 mask = 1ULL << (wordsize - i) % WIDTH;
-    printf("%c", '0' + ((num[SIZE - (wordsize - i) / WIDTH - 1] & mask) > 0));
+  for (int i = 1; i <= number->wordsize; i++) {
+    u64 mask = 1ULL << (number->wordsize - i) % WIDTH;
+    printf("%c", '0' + ((number->num[SIZE - (number->wordsize - i) / WIDTH - 1] & mask) > 0));
   }
 }
 
-static void print_hex(u64 *num, int wordsize) {
-  printf("0x");
+void print_hexstring(FILE *fp, number_t *number) {
+  fprintf(fp, "0x");
   u64 nibble, mask;
-  int round_up = ((wordsize - 1) / 4 + 1) * 4;
+  int round_up = ((number->wordsize - 1) / 4 + 1) * 4;
   for (int i = 1; i <= round_up; i += 4) {
     mask = 0xfULL << (round_up - i - 3) % WIDTH;
     nibble =
-        (mask & num[SIZE - (wordsize - i) / WIDTH - 1]) >> (round_up - i - 3);
+        (mask & number->num[SIZE - (number->wordsize - i) / WIDTH - 1]) >> (round_up - i - 3);
     if (nibble > 15)
-      printf("wtf\n");
+      fprintf(fp, "wtf\n");
     else if (nibble > 9)
-      printf("%c", 'a' - 10 + (int)nibble);
+      fprintf(fp, "%c", 'a' - 10 + (int)nibble);
     else
-      printf("%c", '0' + (int)nibble);
+      fprintf(fp, "%c", '0' + (int)nibble);
   }
 }
 
@@ -1128,11 +1122,11 @@ static int get_max_number(number_t *out, int wordsize) {
   return SUCCESS;
 }
 
-void print_unsigned_decimal(number_t *number) {
+void print_unsigned_decimal(FILE *fp, number_t *number) {
   print_decimal(number, 0);
 }
   
-void print_signed_decimal(number_t *number) {
+void print_signed_decimal(FILE *fp, number_t *number) {
   int ws = number->wordsize;
   // Create a mask for the number's wordsize and apply it
   number_t mask = ZERO(ws);
@@ -1150,10 +1144,10 @@ void print_signed_decimal(number_t *number) {
     number_t complement = ZERO(ws);
     twos_comp(&complement, &masked_number, ws);
     printf("-");
-    print_unsigned_decimal(&complement);
+    print_unsigned_decimal(fp, &complement);
   } else {
     // positive number
-    print_unsigned_decimal(number);
+    print_unsigned_decimal(fp, number);
   }
 }
 
@@ -1261,12 +1255,12 @@ int test_twos_comp(char *num, char *expected, int wordsize, char *msg) {
   number_t twos;
   new_number(&n, BINARY, num, wordsize);
   printf("num = ");
-  print_bitstring(n.num, wordsize);
+  print_bitstring(stdout, &n);
   printf("\n");
   printf("expected two's complement = %s\n", expected);
   twos_comp(&twos, &n, wordsize);
   printf("actual two's complement = ");
-  print_bitstring(twos.num, wordsize);
+  print_bitstring(stdout, &twos);
   printf("\n");
   int ret = isEqualToBitstring(&twos, expected);
   if (!ret)
@@ -1284,15 +1278,15 @@ int test_lshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   new_number(&n, BINARY, num, wordsize);
   new_number(&p, BINARY, pos, wordsize);
   printf("num = ");
-  print_bitstring(n.num, wordsize);
+  print_bitstring(stdout, &n);
   printf("\n");
   printf("pos = ");
-  print_bitstring(p.num, wordsize);
+  print_bitstring(stdout, &p);
   printf("\n");
   printf("expected num << pos = %s\n", expected);
   lshift(&res, &n, &p, wordsize);
   printf("actual num << pos = ");
-  print_bitstring(res.num, wordsize);
+  print_bitstring(stdout, &res);
   printf("\n");
   int ret = isEqualToBitstring(&res, expected);
   if (!ret)
@@ -1310,15 +1304,15 @@ int test_rshift(char *num, char *pos, char *expected, int wordsize, char *msg) {
   new_number(&n, BINARY, num, wordsize);
   new_number(&p, BINARY, pos, wordsize);
   printf("num = ");
-  print_bitstring(n.num, wordsize);
+  print_bitstring(stdout, &n);
   printf("\n");
   printf("pos = ");
-  print_bitstring(p.num, wordsize);
+  print_bitstring(stdout, &p);
   printf("\n");
   printf("expected num >> pos = %s\n", expected);
   rshift(&res, &n, &p, wordsize);
   printf("actual num >> pos = ");
-  print_bitstring(res.num, wordsize);
+  print_bitstring(stdout, &res);
   printf("\n");
   int ret = isEqualToBitstring(&res, expected);
   if (!ret)
@@ -1337,15 +1331,15 @@ int test_add(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("a = ");
-  print_bitstring(a.num, aWs);
+  print_bitstring(stdout, &a);
   printf("\n");
   printf("b = ");
-  print_bitstring(b.num, bWs);
+  print_bitstring(stdout, &b);
   printf("\n");
   printf("expected a+b = %s\n", expected);
   add(&sum, &a, &b, oWs);
   printf("actual a+b = ");
-  print_bitstring(sum.num, oWs);
+  print_bitstring(stdout, &sum);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)
@@ -1363,18 +1357,18 @@ int test_sub(char *aS, int aWs, char *bS, int bWs, int oWs, char *expected,
   number_t a = {0}, b = {0}, sum = {0};
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
-  number_print(&a);
-  number_print(&a);
+  number_print(stdout, &a);
+  number_print(stdout, &a);
   printf("b = ");
-  print_bitstring(b.num, bWs);
+  print_bitstring(stdout, &b);
   printf("\n");
   printf("a = ");
-  print_bitstring(a.num, aWs);
+  print_bitstring(stdout, &a);
   printf("\n");
   printf("expected b-a = %s\n", expected);
   sub(&sum, &a, &b, oWs);
   printf("actual b-a = ");
-  print_bitstring(sum.num, oWs);
+  print_bitstring(stdout, &sum);
   printf("\n");
   int ret = isEqualToBitstring(&sum, expected);
   if (!ret)
@@ -1393,16 +1387,16 @@ int test_and(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("b = ");
-  print_bitstring(b.num, bWs);
+  print_bitstring(stdout, &b);
   printf("\n");
   printf("a = ");
-  print_bitstring(a.num, aWs);
+  print_bitstring(stdout, &a);
   printf("\n");
   printf("expected a&b = %s\n", expected);
   and(&anded, &a, &b, ws);
-  number_print(&anded);
+  number_print(stdout, &anded);
   printf("actual a&b = ");
-  print_bitstring(anded.num, ws);
+  print_bitstring(stdout, &anded);
   printf("\n");
   int ret = isEqualToBitstring(&anded, expected);
   if (!ret)
@@ -1420,19 +1414,19 @@ int test_or(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   new_number(&a, BINARY, aS, aWs);
   new_number(&b, BINARY, bS, bWs);
   printf("a = ");
-  print_bitstring(a.num, aWs);
+  print_bitstring(stdout, &a);
   printf("\n");
-  number_print(&a);
+  number_print(stdout, &a);
   printf("b = ");
-  print_bitstring(b.num, bWs);
+  print_bitstring(stdout, &b);
   printf("\n");
-  number_print(&b);
+  number_print(stdout, &b);
   printf("expected a|b = %s\n", expected);
   or(&ored, &a, &b, ws);
   printf("actual a|b = ");
-  print_bitstring(ored.num, ws);
+  print_bitstring(stdout, &ored);
   printf("\n");
-  number_print(&ored);
+  number_print(stdout, &ored);
   int ret = isEqualToBitstring(&ored, expected);
   if (!ret)
     printf("Test Passed!\n");

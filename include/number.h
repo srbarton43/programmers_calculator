@@ -1,8 +1,8 @@
-
 #ifndef __NUMBER_H
 #define __NUMBER_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define SUCCESS 0
 #define ERROR (-1)
@@ -60,7 +60,7 @@ int new_number(number_t *out, type_e type, const char *number, int wordsize);
  *
  * example: number_print(num)
  */
-void number_print(number_t *number);
+void number_print(FILE *fp, number_t *number);
 
 /************** DELETE_NUMBER ****************/
 /* Frees the Number Struct From Heap
@@ -76,9 +76,13 @@ void number_print(number_t *number);
  */
 void delete_number(number_t *number);
 
-void print_signed_decimal(number_t *number);
+void print_hexstring(FILE *fp, number_t *number);
 
-void print_unsigned_decimal(number_t *number);
+void print_bitstring(FILE *fp, number_t *number);
+
+void print_signed_decimal(FILE *fp, number_t *number);
+
+void print_unsigned_decimal(FILE *fp, number_t *number);
 
 /*
  * copies number param

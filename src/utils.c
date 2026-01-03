@@ -56,7 +56,7 @@ int evaluate_expr(const char *expr) {
              "was larger than the wordsize!\n");
     else {
       printf("  =\n");
-      number_print(&number);
+      number_print(stdout, &number);
       if (number.metadata.SIGNED_OVERFLOW)
         printf("Warning: There was a signed overflow...the integer value "
                "might be inaccurate!\n");
@@ -141,14 +141,14 @@ int el_mainloop() {
         // var assignment
         vars_set_num(prog_data, (char)arg, &number);
         printf("%c\n  = \n", (char)arg);
-        number_print(&number);
+        number_print(stdout, &number);
       } else {
         if (number.metadata.UNSIGNED_OVERFLOW)
           printf("Error: There was a unsigned overflow...the resulting number "
                  "was larger than the wordsize!\n");
         else {
           printf("  =\n");
-          number_print(&number);
+          number_print(stdout, &number);
           if (number.metadata.SIGNED_OVERFLOW)
             printf("Warning: There was a signed overflow...the integer value "
                    "might be inaccurate!\n");
@@ -211,7 +211,7 @@ void print_program_data(program_data_t *p_data) {
   printf("Variables\n");
   for (int i = 0; i < VAR_NUM; i++) {
     printf("%c = ", 'a' + i);
-    number_print(&p_data->vars[i]);
+    number_print(stdout, &p_data->vars[i]);
   }
   printf("wordsize: %d\n", p_data->wordsize);
 }

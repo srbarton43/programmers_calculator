@@ -1,8 +1,12 @@
+#include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "utils.h"
+
+#define MAX_EXPR_LEN 128
 
 void print_usage(char *prog_name) {
   printf("Usage: %s [options]\n", prog_name);
@@ -16,13 +20,16 @@ int main(int argc, char *argv[]) {
   int ret;
 
   int opt;
-  int verbose_flag = 0;
-
+  unsigned short verbose_flag = 0;
+  unsigned short evaluate_flag = 0;
+  char *expression = NULL;
+  
   // Define the long options
   // { name, has_arg, flag, val }
   static struct option long_options[] = {
       {"help", no_argument, 0, 'h'},
       {"verbose", no_argument, 0, 'v'},
+      {"wordsize", required_argument, 0, 'w'},
       {"expression", required_argument, 0, 'e'},
       {0, 0, 0, 0} // End of array
   };
@@ -33,7 +40,7 @@ int main(int argc, char *argv[]) {
   // The "hf:" string means:
   // 'h' - no arg
   // 'e:' - requires an argument (denoted by colon)
-  while ((opt = getopt_long(argc, argv, "hve:", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "hvw:e:", long_options, NULL)) != -1) {
     switch (opt) {
     case 'h':
       print_usage(argv[0]);
@@ -42,16 +49,37 @@ int main(int argc, char *argv[]) {
       verbose_flag = 1;
       printf("Verbose mode enabled.\n");
       break;
+    case 'w': {
+      char *p = NULL;
+      errno = 0;
+      long wordsize = strtoul(optarg, &p, 10);
+      if (errno == 0 && *p == '\0' && wordsize >= 4 && wordsize <= 128) {
+        fprintf(stdout, "Setting wordsize to %d\n", (int)wordsize);
+        // set wordsize
+      } else {
+        fprintf(stderr, "Wordsize must be a valid integer between 4 and 128 inclusive\n");
+      }
+      break;
+              }
     case 'e':
-      printf("evaluating %s\n", optarg);
-      ret = evaluate_expr(optarg);
-      return 0;
+      printf("evaluate\n");
+      evaluate_flag = 1;
+      size_t len = strnlen(optarg, MAX_EXPR_LEN) + 1;
+      expression = malloc(len);
+      strncpy(expression, optarg, len);
+      break;
     case '?':
-      // getopt_long already prints an error message
       return 1;
     default:
       abort();
     }
+  }
+  
+  if (evaluate_flag) {
+      printf("evaluating %s\n", expression);
+      ret = evaluate_expr(expression);
+      free(expression);
+      exit(ret);
   }
 
   // Handle any remaining non-option arguments (like positional filenames)

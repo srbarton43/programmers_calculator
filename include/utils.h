@@ -10,7 +10,7 @@
 #define DEFAULT_WS 8  // the wordsize when pcalc starts
 #define VAR_NUM 26    // the number of vars (26 for each lcase char in alphabet)
 #define MAX_NUMBERS_COUNT 32
-#define PROMPT ">>> "
+#define PROMPT "pc> "
 
 typedef struct status_bitfield {
   unsigned short NUM_BUF_OF : 1; // more numbers than buffer can handle

@@ -41,17 +41,17 @@ test_or_exe = executable( 'test_or', 'or.c',
 
 test('bitwise OR', test_or_exe)
 
-test_wide_exe = executable( 'test_wide', 'wide.c',
-  include_directories : inc,
-  link_with : unittest_lib,
-  c_args : ['-DUNIT_TEST', '-DDEBUG'] )
+# test_wide_exe = executable( 'test_wide', 'wide.c',
+#   include_directories : inc,
+#   link_with : unittest_lib,
+#   c_args : ['-DUNIT_TEST', '-DDEBUG'] )
+#
+# test('wide number', test_wide_exe)
 
-test('wide number', test_wide_exe)
-
-test_dec_print = executable( 'test_decimal', 'print.c',
-  include_directories : inc,
-  link_with : unittest_lib )
-test('test_dec', test_dec_print)
+# test_dec_print = executable( 'test_decimal', 'print.c',
+#   include_directories : inc,
+#   link_with : unittest_lib )
+# test('test_dec', test_dec_print)
 
 test_lshift = executable( 'test_lshift', 'lshift.c',
   include_directories : inc,

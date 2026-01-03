@@ -18,12 +18,12 @@ int main(int argc, char *argv[]) {
     number_t shifted = {0};
     number_t num = {wordsize, {i1, i0}, {0} };
     printf("input\n");
-    number_print(&num);
+    number_print(stdout, &num);
     printf("%d\n", __LINE__);
     number_t shift_num = {8, {0, shift}, {0}};
     lshift(&shifted, &num, &shift_num, wordsize);
     printf("output\n");
-    number_print(&shifted);
+    number_print(stdout, &shifted);
     if (shifted.num[0] == o1 && shifted.num[1] == o0 && shifted.metadata.UNSIGNED_OVERFLOW == overflow) {
       printf("Test Passed\n");
     } else {
