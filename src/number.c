@@ -272,7 +272,9 @@ void print_bitstring(FILE *fp, number_t *number) {
   printf("0b");
   for (int i = 1; i <= number->wordsize; i++) {
     u64 mask = 1ULL << (number->wordsize - i) % WIDTH;
-    printf("%c", '0' + ((number->num[SIZE - (number->wordsize - i) / WIDTH - 1] & mask) > 0));
+    if (i != 1 && (number->wordsize - (i-1)) % 8 == 0)
+      fprintf(fp, "_");
+    fprintf(fp, "%c", '0' + ((number->num[SIZE - (number->wordsize - i) / WIDTH - 1] & mask) > 0));
   }
 }
 
@@ -281,13 +283,15 @@ void print_hexstring(FILE *fp, number_t *number) {
   u64 nibble, mask;
   int round_up = ((number->wordsize - 1) / 4 + 1) * 4;
   for (int i = 1; i <= round_up; i += 4) {
+    if (i != 1 && (number->wordsize - (i-1)) % 32 == 0)
+      fprintf(fp, "_");
     mask = 0xfULL << (round_up - i - 3) % WIDTH;
     nibble =
         (mask & number->num[SIZE - (number->wordsize - i) / WIDTH - 1]) >> (round_up - i - 3);
     if (nibble > 15)
       fprintf(fp, "wtf\n");
     else if (nibble > 9)
-      fprintf(fp, "%c", 'a' - 10 + (int)nibble);
+      fprintf(fp, "%c", 'A' - 10 + (int)nibble);
     else
       fprintf(fp, "%c", '0' + (int)nibble);
   }
@@ -1205,6 +1209,7 @@ void print_signed_decimal(FILE *fp, number_t *number) {
     print_unsigned_decimal(fp, &complement);
   } else {
     // positive number
+    printf("+");
     print_unsigned_decimal(fp, number);
   }
 }

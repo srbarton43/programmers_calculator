@@ -18,6 +18,8 @@
 
 %parse-param {number_flag_t *output} {status_t *status} {u64 *arg}
 
+%define parse.error verbose
+
 /* tokens */
 
 %union {
@@ -43,12 +45,12 @@
 /*  grammar  */
 %%
 
-line: EOL
+line: EOL YYEOF
       {
         status->EMPTY = 1;
         YYACCEPT;
       }
-    | statement EOL
+    | statement EOL YYEOF
       {
 #ifdef DEBUG
         printf("line\n");
@@ -66,7 +68,7 @@ line: EOL
         *output = $1;
         YYACCEPT;
       }
-    | error EOL {
+    | error EOL YYEOF {
         YYABORT;
       }
     ;
@@ -300,12 +302,12 @@ number: DEC
 #ifdef DEBUG
             printf("number=%p\n", var_value);
 #endif
-            status->ACCESS_VAR = 1;
             number_flag_t out = {var_value, IS_VAR};
             $$ = out;
           } else {
-            status->UNDEF_VAR = 1;
-            YYACCEPT;
+            status->UNDEF_VAR = 1; // variable is undefined
+            number_flag_t out = {NULL, IS_VAR};
+            $$ = out;
           }
         }
       ;
@@ -313,4 +315,13 @@ number: DEC
 %%
 
 void yyerror(number_flag_t *number, status_t *status, u64 *arg, const char *msg, ...) {
+    // extern char *yytext; // Access the current token text from the lexer
+    // va_list args;
+    // va_start(args, msg);
+    //
+    // fprintf(stderr, "Parser Error: ");
+    // vfprintf(stderr, msg, args);
+    // fprintf(stderr, " (Current token: '%s')\n", yytext);
+    //
+    // va_end(args);
 }

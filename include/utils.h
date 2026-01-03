@@ -10,7 +10,7 @@
 #define DEFAULT_WS 8  // the wordsize when pcalc starts
 #define VAR_NUM 26    // the number of vars (26 for each lcase char in alphabet)
 #define MAX_NUMBERS_COUNT 32
-#define PROMPT "pc> "
+#define PROMPT ">>> "
 
 typedef struct status_bitfield {
   unsigned short POISON : 1;     // not sure what this means
@@ -29,19 +29,28 @@ typedef struct number_flag {
 } number_flag_t;
 
 typedef struct program_data {
-  int wordsize;
+  unsigned int wordsize;
   struct status_bitfield status; // to remove
   number_t *vars[VAR_NUM];
 } program_data_t;
 
+typedef struct print_flags {
+  unsigned short VERBOSE  : 1;
+  unsigned short BINARY   : 1;
+  unsigned short HEX      : 1;
+  unsigned short DECIMAL  : 1;
+  unsigned short UNSIGNED : 1;
+} print_flags_t;
+
+
 // program data struct ... holds all program state
 extern program_data_t g_prog_data;
 
-int el_mainloop(void);
+int el_mainloop(print_flags_t print_flags);
 
 int rl_mainloop(void);
 
-int evaluate_expr(const char *expr);
+int evaluate_expr(const char *expr, print_flags_t print_flags);
 
 // PROGRAM DATA FUNCTIONS
 // prints program data for debugging

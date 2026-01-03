@@ -34,12 +34,43 @@ extern int yyparse(number_flag_t *output, status_t *status, u64 *arg);
 #ifdef LIBEDIT
 static char *prompt(EditLine *e) { return PROMPT; }
 static void quit_message(int signal) {
-  printf("\ninterrupt (type \"quit\" to exit)\n");
+  printf("\ninterrupt (type \"quit\" to exit)\n"
+         "ready for more input\n");
+  el_reset(el);
   el_set(el, EL_REFRESH);
 }
 #endif
 
-int evaluate_expr(const char *expr) {
+static void number_print_flags(FILE *fp, number_t *number, print_flags_t print_flags) {
+  uint16_t as_u16 = *((uint16_t*) &print_flags);
+  if (!as_u16 || print_flags.VERBOSE) {
+    number_print(fp, number);
+  } else {
+    if (print_flags.BINARY) {
+      print_bitstring(fp, number);
+      fprintf(fp, "\n");
+    }
+    if (print_flags.HEX) {
+      print_hexstring(fp, number);
+      fprintf(fp, "\n");
+    }
+    if (print_flags.DECIMAL) {
+      fprintf(fp, " ");
+      print_signed_decimal(fp, number);
+      fprintf(fp, "\n");
+      if (n_SIGNED_OVERFLOW(number))
+        printf("Warning: There was a signed overflow...the integer value "
+               "might be inaccurate!\n");
+    }
+    if (print_flags.UNSIGNED) {
+      fprintf(fp, "  ");
+      print_unsigned_decimal(fp, number);
+      fprintf(fp, "\n");
+    }
+  }
+}
+
+int evaluate_expr(const char *expr, print_flags_t print_flags) {
   int ret;
   number_t *number = 0;
   number_alloc(&number);
@@ -68,7 +99,7 @@ int evaluate_expr(const char *expr) {
 }
 
 #ifdef LIBEDIT
-int el_mainloop() {
+int el_mainloop(print_flags_t print_flags) {
   /* This holds the info for our history */
   History *myhistory;
 
@@ -149,18 +180,13 @@ int el_mainloop() {
           copy_number(var_copy, number_flag.number, g_prog_data.wordsize);
           vars_set_num((char)arg, var_copy);
         }
-        printf("%c\n  = \n", (char)arg);
-        number_print(stdout, number_flag.number);
+        number_print_flags(stdout, number_flag.number, print_flags);
       } else {
         if (n_UNSIGNED_OVERFLOW(number_flag.number))
           printf("Error: There was a unsigned overflow...the resulting number "
                  "was larger than the wordsize!\n");
         else {
-          printf("  =\n");
-          number_print(stdout, number_flag.number);
-          if (n_SIGNED_OVERFLOW(number_flag.number))
-            printf("Warning: There was a signed overflow...the integer value "
-                   "might be inaccurate!\n");
+          number_print_flags(stdout, number_flag.number, print_flags);
           if (number_flag.flag == NOT_VAR) {
             number_destroy(number_flag.number);
           }

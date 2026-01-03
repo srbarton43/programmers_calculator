@@ -11,9 +11,14 @@
 void print_usage(char *prog_name) {
   printf("Usage: %s [options]\n", prog_name);
   printf("Options:\n");
-  printf("  -h, --help                Show this help message\n");
-  printf("  -v, --verbose             Enable verbose output\n");
-  printf("  -e, --expression <expr>   Evaluate the expression\n");
+  printf("  -h, --help                    Show this help message\n");
+  printf("  -v, --verbose                 Enable verbose output\n");
+  printf("  -b, --binary                  Print in binary format\n");
+  printf("  -x, --hex                     Print in hex format\n");
+  printf("  -d, --decimal                 Print in decimal format\n");
+  printf("  -u, --unsigned                Print in unsigned decimal format\n");
+  printf("  -e, --expression <wordsize>   Set the initial wordsize\n");
+  printf("  -e, --expression <expr>       Evaluate the expression\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -23,31 +28,48 @@ int main(int argc, char *argv[]) {
   unsigned short verbose_flag = 0;
   unsigned short evaluate_flag = 0;
   char *expression = NULL;
+  print_flags_t print_flags = {0};
   
   // Define the long options
   // { name, has_arg, flag, val }
   static struct option long_options[] = {
       {"help", no_argument, 0, 'h'},
       {"verbose", no_argument, 0, 'v'},
+      {"binary", no_argument, 0, 'b'},
+      {"hex", no_argument, 0, 'x'},
+      {"decimal", no_argument, 0, 'd'},
+      {"unsigned", no_argument, 0, 'u'},
       {"wordsize", required_argument, 0, 'w'},
       {"expression", required_argument, 0, 'e'},
       {0, 0, 0, 0} // End of array
   };
   
   //  TODO: hacky..should not need for simple expr eval
+  memset(&g_prog_data, 0, sizeof(program_data_t));
   g_prog_data.wordsize = DEFAULT_WS;
 
   // The "hf:" string means:
   // 'h' - no arg
   // 'e:' - requires an argument (denoted by colon)
-  while ((opt = getopt_long(argc, argv, "hvw:e:", long_options, NULL)) != -1) {
+  while ((opt = getopt_long(argc, argv, "hvbxduw:e:", long_options, NULL)) != -1) {
     switch (opt) {
     case 'h':
       print_usage(argv[0]);
       return 0;
     case 'v':
-      verbose_flag = 1;
-      printf("Verbose mode enabled.\n");
+      print_flags.VERBOSE = 1;
+      break;
+    case 'b':
+      print_flags.BINARY = 1;
+      break;
+    case 'x':
+      print_flags.HEX = 1;
+      break;
+    case 'd':
+      print_flags.DECIMAL = 1;
+      break;
+    case 'u':
+      print_flags.UNSIGNED = 1;
       break;
     case 'w': {
       char *p = NULL;
@@ -55,7 +77,7 @@ int main(int argc, char *argv[]) {
       long wordsize = strtoul(optarg, &p, 10);
       if (errno == 0 && *p == '\0' && wordsize >= 4 && wordsize <= 128) {
         fprintf(stdout, "Setting wordsize to %d\n", (int)wordsize);
-        // set wordsize
+        g_prog_data.wordsize = wordsize;
       } else {
         fprintf(stderr, "Wordsize must be a valid integer between 4 and 128 inclusive\n");
       }
@@ -77,7 +99,7 @@ int main(int argc, char *argv[]) {
   
   if (evaluate_flag) {
       printf("evaluating %s\n", expression);
-      ret = evaluate_expr(expression);
+      ret = evaluate_expr(expression, print_flags);
       free(expression);
       exit(ret);
   }
@@ -93,7 +115,7 @@ int main(int argc, char *argv[]) {
 //  }
 
 #ifdef LIBEDIT
-  ret = el_mainloop();
+  ret = el_mainloop(print_flags);
 #endif
 
 #ifdef READLINE
