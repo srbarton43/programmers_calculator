@@ -18,6 +18,15 @@
 #define FALSE 0
 
 // Implementation uses the complete definition from number.h
+typedef struct number {
+  int wordsize;          // wordsize for the bitstring
+  u64 num[SIZE];         // stores bitstring (only conisider [wordsize] LSB's
+  struct {
+    unsigned short UNSIGNED_OVERFLOW  : 1;
+    unsigned short SIGNED_OVERFLOW    : 1;
+    unsigned short INTERPRET_SIGNED   : 1;
+  } metadata; // stores number metadata about overflow, etc
+} number_t;
 
 typedef uint32_t u32;
 
@@ -50,6 +59,42 @@ static int u32_lesser_than(u32 *left, u32 *right);
 static void u32_subtract(u32 *left, u32 *right);
 static void print_decimal(number_t *number, int is_signed);
 
+
+uint32_t n_sizeof() {
+  return sizeof(number_t);
+}
+
+int number_alloc(number_t **out) {
+  *out = calloc(1, sizeof(number_t));
+  return out != NULL;
+}
+
+int number_destroy(number_t *num) {
+  if (num) {
+    free(num);
+    return SUCCESS;
+  }
+  return ERROR;
+}
+
+int number_zero(number_t * num) {
+  if (num != NULL) {
+    *num = _zero_;
+  }
+  return ERROR;
+}
+
+unsigned short n_UNSIGNED_OVERFLOW(number_t *num) {
+  return num->metadata.UNSIGNED_OVERFLOW;
+}
+
+unsigned short n_SIGNED_OVERFLOW(number_t *num) {
+  return num->metadata.SIGNED_OVERFLOW;
+}
+
+u64 n_getLeastSigChunk(number_t *out) {
+  return out->num[SIZE-1];
+}
 
 int new_number(number_t *out, type_e type, const char *number, int wordsize) {
   if (number == NULL) {
@@ -210,6 +255,19 @@ void number_print(FILE *fp, number_t *number) {
   fprintf(fp, "--------------\n");
 }
 
+#ifdef DEBUG
+int number_debug(number_t *num) {
+  if (!num) {
+    printf("(null)\n");
+    return 1;
+  }
+  printf("raw_struct: { %d, { %llx, %llx }, { %u, %u, %u } }\n", num->wordsize,
+         num->num[0], num->num[1], num->metadata.SIGNED_OVERFLOW,
+         num->metadata.UNSIGNED_OVERFLOW, num->metadata.INTERPRET_SIGNED);
+  return 0;
+}
+#endif
+
 void print_bitstring(FILE *fp, number_t *number) {
   printf("0b");
   for (int i = 1; i <= number->wordsize; i++) {
@@ -242,6 +300,7 @@ int copy_number(number_t *out, number_t *number, int wordsize) {
   } else
     out->wordsize = wordsize;
   memcpy(out->num, number->num, SIZE_BYTES);
+  memcpy(&out->metadata, &number->metadata, sizeof(((number_t *)0)->metadata)); // crazy compiler magic
   return SUCCESS;
 }
 
@@ -669,7 +728,6 @@ static int div_and_mod(number_t *quotient, number_t *remainder,
 #endif
 
       // step 3 of Knuth's algorithm D
-      u32 one = 1;
       u32 x_3digit[2 * SIZE] = {0};
       u32 y_2digit[2 * SIZE] = {0};
       u64 q_u128 = 0;
@@ -1228,6 +1286,23 @@ static void print_decimal(number_t *number, int is_signed) {
 
 #ifdef UNIT_TEST
 
+int construct_number(number_t *out, int wordsize, u64 msb, u64 lsb) {
+  number_t constructed = { wordsize, {msb, lsb}, {0}};
+  *out = constructed;
+  return SUCCESS;
+}
+
+int numbers_equal(number_t *test, u64 correct_h, u64 correct_l) {
+  return test->num[0] == correct_h && test->num[1] == correct_l;
+}
+
+int numbers_equal_metadata(number_t *test, u64 correct_h, u64 correct_l, unsigned short correct_bm) {
+  return test->num[0] == correct_h 
+    && test->num[1] == correct_l
+    && (test->metadata.SIGNED_OVERFLOW<<2 | test->metadata.UNSIGNED_OVERFLOW<<1 | test->metadata.INTERPRET_SIGNED ) == correct_bm
+    ;
+}
+
 int isEqualToBitstring(number_t *n, char *s) {
   if (!n || !s) {
     printf("%s: either number or bitstring was null\n", __FUNCTION__);
@@ -1422,6 +1497,7 @@ int test_or(int ws, char *aS, int aWs, char *bS, int bWs, char *expected,
   printf("\n");
   number_print(stdout, &b);
   printf("expected a|b = %s\n", expected);
+  memset(&ored, 0, sizeof(number_t));
   or(&ored, &a, &b, ws);
   printf("actual a|b = ");
   print_bitstring(stdout, &ored);

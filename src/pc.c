@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   };
   
   //  TODO: hacky..should not need for simple expr eval
-  prog_data = init_program_data();
+  g_prog_data.wordsize = DEFAULT_WS;
 
   // The "hf:" string means:
   // 'h' - no arg
@@ -105,6 +105,5 @@ int main(int argc, char *argv[]) {
 #endif
 
   printf("Thanks for using pcalc :)\n");
-  free_program_data(prog_data);
   return ret;
 }

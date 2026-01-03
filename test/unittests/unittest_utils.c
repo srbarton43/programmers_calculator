@@ -13,13 +13,3 @@ int min(int a, int b) {
   return b;
 }
 
-int is_equal(number_t *number, number_t correct) {
-  for (int i = 0; i < SIZE; i++) {
-    if (number->num[i] != correct.num[i]) {
-      printf("Test Failed\n");
-      return 1;
-    }
-  }
-  printf("Test Passed\n");
-  return 0;
-}
