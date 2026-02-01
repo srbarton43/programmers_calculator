@@ -55,11 +55,10 @@ Note that while two numbers can have the same value, if they have _different_ wo
 ## Future Plans
 
 - [ ] add integration tests
-- [ ] detect 64-bit number overflows
-- [ ] control-c should clear the line buffer
+- [x] detect 64-bit number overflows
+- [x] control-c should clear the line buffer
 - [x] better error messages (especially regarding overflows and OOB)
 - [x] history + use of arrow keys to navigate
 - [ ] rotate operations
 - [ ] 1024-bit wordsize (by storing array of u64)
 - [ ] add documentation for number header
-- [ ] RIIR?
